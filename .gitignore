@@ -1,0 +1,14 @@
+app/controller/*
+!app/controller/Crudgen.php
+app/model/*
+app/view/*
+!app/view/app/*
+!app/view/template/*
+runtime/*
+vendor/*
+app/config/crud.route.ini
+*.mwb.bak
+*.sublime-workspace
+*.sublime-project
+*.lock
+!.gitkeep

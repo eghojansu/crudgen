@@ -1,0 +1,16 @@
+{
+	"name": "eghojansu/crudgen",
+	"description": "CRUD Generator",
+	"homepage": "http://github.com/eghojansu/crudgen",
+	"license": "MIT",
+	"require": {
+		"php": ">=5.3.6",
+		"eghojansu/moe": "dev-master"
+	},
+	"minimum-stability": "dev",
+	"autoload": {
+		"psr-4": {
+			"app\\":"app/"
+		}
+	}
+}
