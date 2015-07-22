@@ -1,0 +1,105 @@
+<h1 class="page-header">Prepare stuff</h1>
+
+<form action="{{ 'preview' | url }}" method="post" class="form-horizontal">
+	<check if="{{ @message }}">
+		<div class="alert alert-danger">{{ @message }}</div>
+	</check>
+	<p><strong>Database Configuration</strong></p>
+	<div class="form-group">
+		<label for="database[name]" class="col-md-2">Database Name</label>
+		<div class="col-md-10">
+			<input type="text" name="database[name]" id="database[name]" value="{{ @POST.database.name }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="database[username]" class="col-md-2">Username</label>
+		<div class="col-md-10">
+			<input type="text" name="database[username]" id="database[username]" value="{{ @POST.database.username }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="database[password]" class="col-md-2">Password</label>
+		<div class="col-md-10">
+			<input type="text" name="database[password]" id="database[password]" value="{{ @POST.database.password }}" class="form-control">
+		</div>
+	</div>
+	<hr>
+	<p><strong>Path Configuration (Use full path and make sure path is writable)</strong></p>
+	<div class="form-group">
+		<label for="path[controller]" class="col-md-2">Controller</label>
+		<div class="col-md-10">
+			<input type="text" name="path[controller]" id="path[controller]" value="{{ @POST.path.controller }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="path[model]" class="col-md-2">Model</label>
+		<div class="col-md-10">
+			<input type="text" name="path[model]" id="path[model]" value="{{ @POST.path.model }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="path[view]" class="col-md-2">View</label>
+		<div class="col-md-10">
+			<input type="text" name="path[view]" id="path[view]" value="{{ @POST.path.view }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="path[config]" class="col-md-2">Config</label>
+		<div class="col-md-10">
+			<input type="text" name="path[config]" id="path[config]" value="{{ @POST.path.config }}" class="form-control">
+		</div>
+	</div>
+	<hr>
+	<p><strong>Others</strong></p>
+	<div class="form-group">
+		<label for="route_prefix" class="col-md-2">Route Prefix</label>
+		<div class="col-md-10">
+			<input type="text" name="route_prefix" id="route_prefix" value="{{ @POST.route_prefix }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="cnamespace" class="col-md-2">Controller Namespace</label>
+		<div class="col-md-10">
+			<input type="text" name="cnamespace" id="cnamespace" value="{{ @POST.cnamespace }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="mnamespace" class="col-md-2">Model Namespace</label>
+		<div class="col-md-10">
+			<input type="text" name="mnamespace" id="mnamespace" value="{{ @POST.mnamespace }}" class="form-control">
+		</div>
+	</div>
+	<hr>
+	<p><strong>Template</strong></p>
+	<div class="form-group">
+		<label for="template[controller]" class="col-md-2">Controller</label>
+		<div class="col-md-10">
+			<textarea name="template[controller]" id="template[controller]" class="form-control">{{ @POST.template.controller }}</textarea>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="template[model]" class="col-md-2">Model</label>
+		<div class="col-md-10">
+			<textarea name="template[model]" id="template[model]" class="form-control">{{ @POST.template.model }}</textarea>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="template[view_list]" class="col-md-2">View List</label>
+		<div class="col-md-10">
+			<textarea name="template[view_list]" id="template[view_list]" class="form-control">{{ @POST.template.view_list }}</textarea>
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="template[view_input]" class="col-md-2">View Input</label>
+		<div class="col-md-10">
+			<textarea name="template[view_input]" id="template[view_input]" class="form-control">{{ @POST.template.view_input }}</textarea>
+		</div>
+	</div>
+	<hr>
+	<div class="form-group">
+		<div class="col-md-10 col-md-offset-2">
+			<button type="submit" class="btn btn-primary">Preview</button>
+			<button type="reset" class="btn btn-default">Clear</button>
+		</div>
+	</div>
+</form>

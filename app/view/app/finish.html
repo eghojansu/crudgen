@@ -1,0 +1,27 @@
+<h1 class="page-header">Stage Clear</h1>
+
+<p>It's done!!</p>
+<hr>
+<hr>
+<p>Successful write list:</p>
+<ul>
+	<repeat group="{{ @success }}" value="{{ @file }}">
+		<li>{{ @file }}</li>
+	</repeat>
+</ul>
+<hr>
+<p>Failed write list:</p>
+<ul>
+	<repeat group="{{ @failed }}" value="{{ @file }}">
+		<li>{{ @file }}</li>
+	</repeat>
+</ul>
+<hr>
+<p>Skipped write list:</p>
+<ul>
+	<repeat group="{{ @skipped }}" value="{{ @file }}">
+		<li>{{ @file }}</li>
+	</repeat>
+</ul>
+<hr>
+<a href="{{ 'init' | url }}" class="btn btn-default">Back</a>

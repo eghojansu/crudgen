@@ -1,0 +1,47 @@
+<h1 class="page-header">Review things</h1>
+
+<form action="{{ 'finish' | url }}" method="post" class="form-horizontal">
+	<check if="{{ @message }}">
+		<div class="alert alert-danger">{{ @message }}</div>
+	</check>
+	<p><strong>Routes</strong></p>
+	<div class="form-group">
+		<label for="route[file]" class="col-md-2">Route Filename</label>
+		<div class="col-md-10">
+			<input type="text" name="route[file]" id="route[file]" value="{{ @POST.route.file }}" class="form-control">
+		</div>
+	</div>
+	<div class="form-group">
+		<label for="route[content]" class="col-md-2">Route Content</label>
+		<div class="col-md-10">
+			<textarea name="route[content]" id="route[content]" class="form-control">{{ @POST.route.content }}</textarea>
+		</div>
+	</div>
+	<hr>
+	<p><strong>CRUDs</strong></p>
+	<repeat group="{{ @POST.cruds }}" key="{{ @i }}" value="{{ @crud }}">
+		<repeat group="{{ @crud }}" key="{{ @type }}" value="{{ @def }}">
+			<div class="form-group">
+				<label for="cruds[{{ @i }}][{{ @type }}][file]" class="col-md-2">{{ @type }} Filename</label>
+				<div class="col-md-10">
+					<input type="text" name="cruds[{{ @i }}][{{ @type }}][file]" id="cruds[{{ @i }}][{{ @type }}][file]" value="{{ @def.file }}" class="form-control">
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="cruds[{{ @i }}][{{ @type }}][content]" class="col-md-2">{{ @type }} Content</label>
+				<div class="col-md-10">
+					<textarea name="cruds[{{ @i }}][{{ @type }}][content]" id="cruds[{{ @i }}][{{ @type }}][content]" class="form-control">{{ @def.content }}</textarea>
+				</div>
+			</div>
+		</repeat>
+		<hr>
+		<hr>
+	</repeat>
+	<hr>
+	<div class="form-group">
+		<div class="col-md-10 col-md-offset-2">
+			<button type="submit" class="btn btn-primary">Finish</button>
+			<button type="reset" class="btn btn-default">Clear</button>
+		</div>
+	</div>
+</form>
