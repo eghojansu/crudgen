@@ -4,11 +4,22 @@
 	<check if="{{ @message }}">
 		<div class="alert alert-danger">{{ @message }}</div>
 	</check>
+	<div class="form-group">
+		<div class="col-md-3 col-md-offset-9" style="text-align: right">
+			<a href="javascript:;" id="uncheck-all" class="btn btn-success btn-xs"><i class="fa fa-remove"></i> Uncheck All</a>
+			<a href="javascript:;" id="check-all" class="btn btn-danger btn-xs"><i class="fa fa-check"></i> Check All</a>
+		</div>
+	</div>
 	<p><strong>Routes</strong></p>
 	<div class="form-group">
 		<label for="route[file]" class="col-md-2">Route Filename</label>
-		<div class="col-md-10">
+		<div class="col-md-8">
 			<input type="text" name="route[file]" id="route[file]" value="{{ @POST.route.file }}" class="form-control">
+		</div>
+		<div class="col-md-2">
+			<label class="checkbox-inline">
+				<input type="checkbox" name="route[overwrite]" value="1"> Overwrite
+			</label>
 		</div>
 	</div>
 	<div class="form-group">
@@ -23,8 +34,13 @@
 		<repeat group="{{ @crud }}" key="{{ @type }}" value="{{ @def }}">
 			<div class="form-group">
 				<label for="cruds[{{ @i }}][{{ @type }}][file]" class="col-md-2">{{ @type }} Filename</label>
-				<div class="col-md-10">
+				<div class="col-md-8">
 					<input type="text" name="cruds[{{ @i }}][{{ @type }}][file]" id="cruds[{{ @i }}][{{ @type }}][file]" value="{{ @def.file }}" class="form-control">
+				</div>
+				<div class="col-md-2">
+					<label class="checkbox-inline">
+						<input type="checkbox" name="cruds[{{ @i }}][{{ @type }}][overwrite]" value="1"> Overwrite
+					</label>
 				</div>
 			</div>
 			<div class="form-group">
@@ -45,3 +61,13 @@
 		</div>
 	</div>
 </form>
+{{ moe\Instance::assets('BODY.SCRIPT.READY', <<<JS
+$('#check-all').on('click', function(){
+	$('input[type=checkbox]').prop('checked', true);
+});
+$('#uncheck-all').on('click', function(){
+	$('input[type=checkbox]').prop('checked', false);
+});
+JS
+)
+}}
