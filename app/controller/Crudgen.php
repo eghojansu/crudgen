@@ -155,19 +155,13 @@ class Crudgen
         $success = array();
         $skipped = array();
         $failed  = array();
-        if (file_exists($route = $moe->fixslashes($moe->get('POST.route.file'))))
-            array_push($skipped, $route);
-        else {
-            $dir = substr($route, 0, strrpos($route, '/'));
-            file_exists($dir) || mkdir($dir,Base::MODE,true);
-            if ($moe->write($route, $moe->get('POST.route.content')))
-                array_push($success, $route);
-            else
-                array_push($failed, $route);
-        }
-        foreach ($moe->get('POST.cruds') as $i => $crud)
+        $files   = $moe->get('POST.cruds');
+        $files[] = array('xx'=>$moe->get('POST.route'));
+        foreach ($files as $i => $crud)
             foreach ($crud as $type => $def)
-                if (file_exists($route = $moe->fixslashes($def['file'])))
+                if (file_exists($route = $moe->fixslashes($def['file'])) &&
+                    !isset($def['overwrite']) && !$def['overwrite']
+                )
                     array_push($skipped, $route);
                 else {
                     $dir = substr($route, 0, strrpos($route, '/'));
