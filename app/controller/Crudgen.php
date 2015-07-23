@@ -85,6 +85,7 @@ class Crudgen
         $eol   = "\n";
         $php   = '.php';
         $html  = '.html';
+        $s3    = $this->space(4*3);
         $i     = -1;
         $crud  = $temp = $routes = array();
 
@@ -109,22 +110,21 @@ class Crudgen
             $schema = $pk   = array();
             while ($def = $queryC->fetch(PDO::FETCH_OBJ)) {
                 $field           = ucwords(str_replace('_',' ', $def->Field));
-                $columns_header .= '<th>'.$field.'</th>'.$eol;
+                $columns_header .= $s3.'<th>'.$field.'</th>'.$eol;
                 $columns_select .= $def->Field.','.$eol;
                 $fields_form    .= $this->form((array) $def, $field).$eol;
                 $schema[]        = $this->schema($def, $field);
                 $def->Key != 'PRI'   || $pk[] = $def->Field;
             }
 
-            $s3 = $this->space(4*3);
             $this->token('controller',     $controller);
             $this->token('model',          $model);
             $this->token('table',          $table);
-            $this->token('columns_header', rtrim($columns_header));
+            $this->token('columns_header', trim($columns_header));
             $this->token('columns_select', rtrim($columns_select, ','.$eol));
             $this->token('fields_form',    rtrim($fields_form));
-            $this->token('schema',         "array(\n".$s3.
-                implode(",\n".$s3, $schema).")");
+            $this->token('schema',         "array(".$eol.$s3.
+                implode(",".$eol.$s3, $schema).$eol.$s3.")");
             $this->token('primary_keys',   $moe->stringify($pk));
             $this->token('primary_key',    array_shift($pk));
             $this->token('relation',       $this->relation($table, $db));
@@ -236,7 +236,11 @@ class Crudgen
     private function schema($col, $field)
     {
         $col = (array) $col;
-        return "array('$field', ".$this->filter($col).", ".$this->def($col).")";
+        $def = $this->def($col);
+        return str_replace(
+            array('EOL', 'S4'),
+            array("\n", $this->space(4*4)),
+            "'$col[Field]'=>array(EOLS4'$field',EOLS4".$this->filter($col).",".($def?'EOLS4'.$def:'')."EOLS4)");
     }
 
     private function filter(array $col)
