@@ -69,6 +69,8 @@ class Crudgen
             return;
         }
 
+        $this->config['template']     = array_merge($this->config['template'],
+            $moe->get('POST.template'));
         $this->config['database']     = array_merge($this->config['database'],
             $moe->get('POST.database'));
         $this->config['path']         = array_merge($this->config['path'],
