@@ -36,7 +36,7 @@ class Crudgen
         'mnamespace'   => '',
         );
 
-    const TOKEN      = 'table|controller|model|columns_header|columns_select|fields_form|schema|primary_keys|primary_key|cnamespace|mnamespace';
+    const TOKEN      = 'table|relation|controller|model|columns_header|columns_select|fields_form|schema|primary_keys|primary_key|cnamespace|mnamespace';
     protected $token = array();
     protected $config_path;
 
@@ -127,6 +127,7 @@ class Crudgen
                 implode(",\n".$s3, $schema).")");
             $this->token('primary_keys',   $moe->stringify($pk));
             $this->token('primary_key',    array_shift($pk));
+            $this->token('relation',       $this->relation($table, $db));
 
             ++$i;
             foreach ($temp as $key => $value)
@@ -181,6 +182,24 @@ class Crudgen
     {
         $this->pageTitle('How To');
         $moe->send('app/howto');
+    }
+
+    private function relation($table, $db)
+    {
+        $query = $db->query('show create table '.$table);
+        $structure = $query->fetch(PDO::FETCH_NUM)[1];
+        unset($db, $query);
+        $relation = '';
+        $eol      = "\n";
+        $s3       = $this->space(4*3);
+        if (preg_match_all('/FOREIGN KEY \(\W*(?<fil1>[a-zA-Z_]+)\W*\) REFERENCES \W*(?<tab>[a-zA-Z_]+)\W* \(\W*(?<fil2>[a-zA-Z_]+)\W*\)/',
+            $structure, $match, PREG_SET_ORDER))
+            foreach ($match as $tab)
+                $relation .= str_replace(
+                    array('{tab}', '{fil1}', '{fil2}', '{EOL}', '{S3}'),
+                    array($tab['tab'], $tab['fil1'], $tab['fil2'], $eol, $s3),
+                    "'{tab}'=>'join {join} on {join}.{fil2} = {table}.{fil1}',{EOL}{S3}");
+        return 'array('.($relation?$eol.$s3.$relation:'').')';
     }
 
     private function def(array $col)
