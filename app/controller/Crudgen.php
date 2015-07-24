@@ -365,7 +365,7 @@ class Crudgen
             $this->space($space*2),
             $eol,
             ($isRadio?'':' for="'.$col['Field'].'"'),
-            $field,
+            $col['Field'],
             ($col['Null']=='NO'?' required':''),
             ),
             'S1<div class="form-group">EOL'.
