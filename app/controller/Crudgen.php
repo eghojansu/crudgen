@@ -369,7 +369,7 @@ class Crudgen
             ($col['Null']=='NO'?' required':''),
             ),
             'S1<div class="form-group">EOL'.
-            'S2<labelFOR class="col-md-3">FIELD</label>EOL'.
+            'S2<labelFOR class="col-md-3">{{ @fields.FIELD }}</label>EOL'.
             'S2<div class="col-md-9">EOL'.
             $form.
             'S2</div>EOL'.
