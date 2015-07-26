@@ -105,17 +105,18 @@ class Crudgen
         $this->token('cnamespace', $this->config['cnamespace']);
         $this->token('mnamespace', $this->config['mnamespace']);
         while ($table = $query->fetchColumn()) {
-            $model          = ucfirst($moe->camelcase($table));
+            $model          = $this->model($table);
             $controller     = 'Crud'.$model;
             $queryC         = $db->query('show columns from '.$table);
             $columns_header = $columns_select = $fields_form = '';
             $schema = $pk   = array();
+            $relation       = $this->relation($table, $db);
             while ($def = $queryC->fetch(PDO::FETCH_OBJ)) {
                 $field           = ucwords(str_replace('_',' ', $def->Field));
-                $columns_header .= $s3.'<th>'.$field.'</th>'.$eol;
+                $columns_header .= $s3.'<th>{{ @fields.'.$def->Field.' }}</th>'.$eol;
                 $columns_select .= $def->Field.','.$eol;
                 $fields_form    .= $this->form((array) $def, $field).$eol;
-                $schema[]        = $this->schema($def, $field);
+                $schema[]        = $this->schema($def, $field, $relation);
                 $def->Key != 'PRI'   || $pk[] = $def->Field;
             }
 
@@ -129,7 +130,7 @@ class Crudgen
                 implode(",".$eol.$s3, $schema).$eol.$s3.")");
             $this->token('primary_keys',   $moe->stringify($pk));
             $this->token('primary_key',    array_shift($pk));
-            $this->token('relation',       $this->relation($table, $db));
+            $this->token('relation',       $this->relationString($relation));
 
             ++$i;
             foreach ($temp as $key => $value)
@@ -139,7 +140,7 @@ class Crudgen
                         ($key=='controller'?$controller.$php:
                             ($key=='model'?$model.$php:
                                 (strpos($key, 'view')==0?$this->config['path']['view'].$table.'/'.
-                                    $table.'_'.explode('_', $key)[1].$html:'xx')))),
+                                    explode('_', $key)[1].$html:'xx')))),
                     'content'=>str_replace(
                         array_keys($this->token),
                         array_values($this->token),
@@ -149,7 +150,7 @@ class Crudgen
         $moe->set('POST.cruds', $crud);
         $moe->set('POST.route', array(
             'file'=>$this->config['path']['config'].'crud.route.ini',
-            'content'=>implode($eol, $routes)));
+            'content'=>'[routes]'.$eol.implode($eol, $routes)));
         $moe->send('app/preview');
     }
 
@@ -162,17 +163,22 @@ class Crudgen
         $files[] = array('xx'=>$moe->get('POST.route'));
         foreach ($files as $i => $crud)
             foreach ($crud as $type => $def)
-                if (file_exists($route = $moe->fixslashes($def['file'])) &&
+                if (file_exists($file = $moe->fixslashes($def['file'])) &&
                     !isset($def['overwrite']) && !$def['overwrite']
                 )
-                    array_push($skipped, $route);
+                    array_push($skipped, $file);
                 else {
-                    $dir = substr($route, 0, strrpos($route, '/'));
-                    file_exists($dir) || mkdir($dir,Base::MODE,true);
-                    if ($moe->write($route, $def['content']))
-                        array_push($success, $route);
+                    $dir = substr($file, 0, strrpos($file, '/'));
+                    if (!file_exists($dir)) {
+                        mkdir($dir,0757,true);
+                        chmod($dir, 0757);
+                    }
+                    if ($moe->write($file, $def['content'])) {
+                        array_push($success, $file);
+                        chmod($file, 0757);
+                    }
                     else
-                        array_push($failed, $route);
+                        array_push($failed, $file);
                 }
         $moe->set('success', $success);
         $moe->set('skipped', $skipped);
@@ -186,22 +192,23 @@ class Crudgen
         $moe->send('app/howto');
     }
 
+    private function model($table)
+    {
+        return ucfirst(Instance::camelcase($table));
+    }
+
     private function relation($table, $db)
     {
         $query = $db->query('show create table '.$table);
         $structure = $query->fetch(PDO::FETCH_NUM)[1];
         unset($db, $query);
-        $relation = '';
-        $eol      = "\n";
-        $s3       = $this->space(4*3);
+        $relation = array();
         if (preg_match_all('/FOREIGN KEY \(\W*(?<fil1>[a-zA-Z_]+)\W*\) REFERENCES \W*(?<tab>[a-zA-Z_]+)\W* \(\W*(?<fil2>[a-zA-Z_]+)\W*\)/',
             $structure, $match, PREG_SET_ORDER))
             foreach ($match as $tab)
-                $relation .= str_replace(
-                    array('{tab}', '{fil1}', '{fil2}', '{EOL}', '{S3}'),
-                    array($tab['tab'], $tab['fil1'], $tab['fil2'], $eol, $s3),
-                    "'{tab}'=>'join {join} on {join}.{fil2} = {table}.{fil1}',{EOL}{S3}");
-        return 'array('.($relation?$eol.$s3.$relation:'').')';
+                $relation[$tab['fil1']] = array($tab['tab'],$tab['fil2']);
+
+        return $relation;
     }
 
     private function def(array $col)
@@ -235,17 +242,41 @@ class Crudgen
         return preg_match('/^(bit|tinyint|smallint|mediumint|int|integer|bigint|real|double|float|decimal|numeric)/i', $field);
     }
 
-    private function schema($col, $field)
+    private function isDate($field)
+    {
+        return preg_match('/^(date|time|timestamp|datetime)/i', $field);
+    }
+
+    private function isLongtext($field)
+    {
+        return preg_match('/^(tinyblob|blob|mediumblob|longblob|tinytext|text|mediumtext|longtext)/i', $field);
+    }
+
+    private function relationString($rel)
+    {
+        $relation = '';
+        $eol      = "\n";
+        $s3       = $this->space(4*3);
+        foreach ($rel as $fil1=>$tab)
+            $relation .= str_replace(
+                array('{tab}', '{fil1}', '{fil2}', '{EOL}', '{S3}'),
+                array($tab[0], $fil1, $tab[1], $eol, $s3),
+                "'{tab}'=>'join {join} on {join}.{fil2} = {table}.{fil1}',{EOL}{S3}");
+        return 'array('.($relation?$eol.$s3.$relation:'').')';
+    }
+
+    private function schema($col, $field, $relation)
     {
         $col = (array) $col;
         $def = $this->def($col);
         return str_replace(
             array('EOL', 'S4'),
             array("\n", $this->space(4*4)),
-            "'$col[Field]'=>array(EOLS4'$field',EOLS4".$this->filter($col).",".($def?'EOLS4'.$def:'')."EOLS4)");
+            "'$col[Field]'=>array(EOLS4'$field',EOLS4".
+                $this->filter($col,$relation).",".($def?'EOLS4'.$def:'')."EOLS4)");
     }
 
-    private function filter(array $col)
+    private function filter(array $col, $relation)
     {
         $filter = "'trim'";
         $col['Null']=='YES' || $filter .= ",'required'";
@@ -253,22 +284,32 @@ class Crudgen
         if (preg_match('/\((?<len>.*)\)/', $col['Type'], $match))
             $length = is_numeric($match['len'])? $match['len']:
                 explode(',', str_replace(array('"', "'"), '', $match['len']));
-        (is_array($length) || !$length || $length == 1) ||
-            $filter .= ",'max_length'=>$length";
-        (is_array($length) || !$length || $length > 1) || $filter .= ",'in_array'=>array(0,1)";
-        !is_array($length) || $filter .= ",'in_array'=>".Instance::stringify($length);
+        if (is_array($length))
+            $filter .= ",'in_array'=>".Instance::stringify($length);
+        elseif ($length)
+            if ($length == 1)
+                $filter .= ",'in_array'=>array(0,1)";
+            else
+                $filter .= ",'max_length'=>$length";
+        if ($col['Key']==='UNI' || ($col['Key']=='PRI' &&
+            strpos($col['extra'], 'auto_increment')===false))
+            $filter .= ",'unique".$this->model($col['Field'])."'";
+        if (isset($relation[$col['Field']]))
+            $filter .= ",'exists'=>'".addslashes($this->config['mnamespace'].'\\').
+                $this->model($relation[$col['Field']][0])."->exists'";
+
         return "array($filter)";
     }
 
     private function form(array $col, $field)
     {
-        $isNumber = $this->isNumber($col['Type']);
-        $isRadio = false;
-        $type = 'textarea';
-        $opt = array();
+        $isRadio    = false;
+        $isNumber   = $this->isNumber($col['Type']);
+        $isDate     = $this->isDate($col['Type']);
+        $isLongtext = $this->isLongtext($col['Type']);
+        $opt        = array();
         if (preg_match('/\((?<num>\d+)\)/', $col['Type'], $match)) {
-            $type = 'text';
-            if ($isNumber && $match['num']==1) {
+            if ($match['num']==1) {
                 $isRadio = true;
                 $opt = array(1=>'Yes',0=>'No');
             }
@@ -277,24 +318,15 @@ class Crudgen
             $isRadio = count($opt)<4;
         }
 
-
         $space = 4;
         $form  = '';
         $eol   = "\n";
         if ($isRadio)
             foreach ($opt as $key => $value)
                 $form .= str_replace(array(
-                    'S3',
-                    'S4',
-                    'EOL',
-                    'FIELD',
                     'VALUE',
                     'LABEL',
                     ), array(
-                    $this->space($space*3),
-                    $this->space($space*4),
-                    $eol,
-                    $col['Field'],
                     ($isNumber?$key:$value),
                     $value,
                     ),
@@ -302,8 +334,27 @@ class Crudgen
                     'S4<input type="radio" name="FIELD" value="VALUE"'.
                     '{{ @POST.FIELD==VALUE?" checked":"" }}REQUIRED> LABELEOL'.
                     'S3</label>EOL');
+        elseif ($isDate)
+            $form = 'S3{~ @x = explode(\'-\', @POST.FIELD) ~}EOL'.
+                'S3<select style="width: 70px; display: inline" name="FIELD[d]" class="form-control"REQUIRED>EOL'.
+                'S4<option value=""> ---</option>EOL'.
+                'S4{{ moe\\Helper::optionRange(1, 31, @x[2]) }}EOL'.
+                'S3</select>EOL'.
+                'S3<select style="width: 100px; display: inline" name="FIELD[m]" class="form-control"REQUIRED>EOL'.
+                'S4<option value=""> ---</option>EOL'.
+                'S4{{ moe\\Helper::optionMonth(@x[1]) }}EOL'.
+                'S3</select>EOL'.
+                'S3<select style="width: 80px; display: inline" name="FIELD[y]" class="form-control"REQUIRED>EOL'.
+                'S4<option value=""> ---</option>EOL'.
+                'S4{{ moe\\Helper::optionRange(date(\'Y\')-5, date(\'Y\')+5, @x[0]) }}EOL'.
+                'S3</select>EOL';
+        elseif (strtolower($col['field'])=='year')
+            $form = 'S3<select style="width: 80px" name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
+                'S4<option value=""> ---</option>EOL'.
+                'S4{{ moe\\Instance::optionRange(date(\'Y\')-5, date(\'Y\')+5, @POST.FIELD) }}EOL'.
+                'S3</select>EOL';
         elseif (count($opt)) {
-            $form .= 'S4<option value=""> ---</option>EOL';
+            $form = 'S4<option value=""> ---</option>EOL';
             foreach ($opt as $key => $value)
                 $form .= str_replace(array(
                     'VALUE',
@@ -314,48 +365,21 @@ class Crudgen
                     ),
                     'S4<option value="FIELD"{{ @POST.FIELD==VALUE?'.
                     '" selected":"" }}> LABEL</option>EOL');
-            $form = str_replace(array(
-                'S3',
-                'S4',
-                'EOL',
-                'FIELD',
-                ), array(
-                $this->space($space*3),
-                $this->space($space*4),
-                $eol,
-                $col['Field'],
-                ),
-                'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
+            $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
                 $form.
-                'S3</select>EOL');
-        } elseif ($type == 'textarea')
-            $form = str_replace(array(
-                'S3',
-                'EOL',
-                'FIELD',
-                ), array(
-                $this->space($space*3),
-                $eol,
-                $col['Field'],
-                ),
-                'S3<textarea name="FIELD" id="FIELD" class="form-control"REQUIRED>'.
-                '{{ @POST.FIELD }}</textarea>EOL');
+                'S3</select>EOL';
+        } elseif ($isLongtext)
+            $form = 'S3<textarea name="FIELD" id="FIELD" class="form-control"REQUIRED>'.
+                '{{ @POST.FIELD }}</textarea>EOL';
         else
-            $form = str_replace(array(
-                'S3',
-                'EOL',
-                'FIELD',
-                ), array(
-                $this->space($space*3),
-                $eol,
-                $col['Field'],
-                ),
-                'S3<input type="text" name="FIELD" id="FIELD" class="form-control"'.
-                ' value="{{ @POST.FIELD }}"REQUIRED>EOL');
+            $form = 'S3<input type="text" name="FIELD" id="FIELD" class="form-control"'.
+                ' value="{{ @POST.FIELD }}"REQUIRED>EOL';
 
         return str_replace(array(
             'S1',
             'S2',
+            'S3',
+            'S4',
             'EOL',
             'FOR',
             'FIELD',
@@ -363,8 +387,10 @@ class Crudgen
             ), array(
             $this->space($space),
             $this->space($space*2),
+            $this->space($space*3),
+            $this->space($space*4),
             $eol,
-            ($isRadio?'':' for="'.$col['Field'].'"'),
+            (($isRadio || $isDate)?'':' for="'.$col['Field'].'"'),
             $col['Field'],
             ($col['Null']=='NO'?' required':''),
             ),

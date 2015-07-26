@@ -12,3 +12,4 @@ app/config/crud.route.ini
 *.sublime-project
 *.lock
 !.gitkeep
+composer-dev.json
