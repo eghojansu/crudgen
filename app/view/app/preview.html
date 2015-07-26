@@ -6,8 +6,32 @@
 	</check>
 	<div class="form-group">
 		<div class="col-md-3 col-md-offset-9" style="text-align: right">
-			<a href="javascript:;" id="uncheck-all" class="btn btn-success btn-xs"><i class="fa fa-remove"></i> Uncheck All</a>
-			<a href="javascript:;" id="check-all" class="btn btn-danger btn-xs"><i class="fa fa-check"></i> Check All</a>
+			<div class="btn-group">
+			  <button type="button" class="btn btn-success dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+			    <i class="fa fa-check"></i> UnCheck All <span class="caret"></span>
+			  </button>
+			  <ul class="dropdown-menu" role="menu">
+			    <li><a href="javascript:;" class="uncheck-all" data-part="all">All</a></li>
+			    <li><a href="javascript:;" class="uncheck-all" data-part="route">Route</a></li>
+			    <li><a href="javascript:;" class="uncheck-all" data-part="controller">Controller</a></li>
+			    <li><a href="javascript:;" class="uncheck-all" data-part="model">Model</a></li>
+			    <li><a href="javascript:;" class="uncheck-all" data-part="view_list">View List</a></li>
+			    <li><a href="javascript:;" class="uncheck-all" data-part="view_input">View Input</a></li>
+			  </ul>
+			</div>
+			<div class="btn-group">
+			  <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+			    <i class="fa fa-check"></i> Check All <span class="caret"></span>
+			  </button>
+			  <ul class="dropdown-menu" role="menu">
+			    <li><a href="javascript:;" class="check-all" data-part="all">All</a></li>
+			    <li><a href="javascript:;" class="check-all" data-part="route">Route</a></li>
+			    <li><a href="javascript:;" class="check-all" data-part="controller">Controller</a></li>
+			    <li><a href="javascript:;" class="check-all" data-part="model">Model</a></li>
+			    <li><a href="javascript:;" class="check-all" data-part="view_list">View List</a></li>
+			    <li><a href="javascript:;" class="check-all" data-part="view_input">View Input</a></li>
+			  </ul>
+			</div>
 		</div>
 	</div>
 	<p><strong>Routes</strong></p>
@@ -62,11 +86,19 @@
 	</div>
 </form>
 {{ moe\Instance::assets('BODY.SCRIPT.READY', <<<JS
-$('#check-all').on('click', function(){
-	$('input[type=checkbox]').prop('checked', true);
+$('.check-all').on('click', function(){
+	var part = $(this).data('part'),
+		reg  = new RegExp(part);
+	$('input[type=checkbox]').filter(function(){
+		return part=='all'?true:reg.test($(this).prop('name'));
+	}).prop('checked', true);
 });
-$('#uncheck-all').on('click', function(){
-	$('input[type=checkbox]').prop('checked', false);
+$('.uncheck-all').on('click', function(){
+	var part = $(this).data('part'),
+		reg  = new RegExp(part);
+	$('input[type=checkbox]').filter(function(){
+		return part=='all'?true:reg.test($(this).prop('name'));
+	}).prop('checked', false);
 });
 JS
 )
