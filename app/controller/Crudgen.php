@@ -133,24 +133,31 @@ class Crudgen
             $this->token('relation',       $this->relationString($relation));
 
             ++$i;
-            foreach ($temp as $key => $value)
+            foreach ($temp as $key => $value) {
+                $file = ((isset($this->config['path'][$key])?
+                    $this->config['path'][$key]:'').
+                    ($key=='controller'?$controller.$php:
+                        ($key=='model'?$model.$php:
+                            (strpos($key, 'view')==0?$this->config['path']['view'].$table.'/'.
+                                explode('_', $key)[1].$html:'xx'))));
                 $crud[$i][$key] = array(
-                    'file'=>((isset($this->config['path'][$key])?
-                        $this->config['path'][$key]:'').
-                        ($key=='controller'?$controller.$php:
-                            ($key=='model'?$model.$php:
-                                (strpos($key, 'view')==0?$this->config['path']['view'].$table.'/'.
-                                    explode('_', $key)[1].$html:'xx')))),
+                    'file'=>$file,
+                    'exists'=>file_exists($file),
                     'content'=>str_replace(
                         array_keys($this->token),
                         array_values($this->token),
                         $value));
+            }
             $routes[] = array_pop($crud[$i])['content'];
         }
+        $file = $this->config['path']['config'].'crud.route.ini';
+        $route = array(
+            'file'=>$file,
+            'exists'=>file_exists($file),
+            'content'=>'[routes]'.$eol.implode($eol, $routes));
+
         $moe->set('POST.cruds', $crud);
-        $moe->set('POST.route', array(
-            'file'=>$this->config['path']['config'].'crud.route.ini',
-            'content'=>'[routes]'.$eol.implode($eol, $routes)));
+        $moe->set('POST.route', $route);
         $moe->send('app/preview');
     }
 
