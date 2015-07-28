@@ -41,9 +41,11 @@
 			<input type="text" name="route[file]" id="route[file]" value="{{ @POST.route.file }}" class="form-control">
 		</div>
 		<div class="col-md-2">
-			<label class="checkbox-inline">
-				<input type="checkbox" name="route[overwrite]" value="1"> Overwrite
-			</label>
+			<check if="{{ @POST.route.exists }}">
+				<label class="checkbox-inline">
+					<input type="checkbox" name="route[overwrite]" value="1"> Overwrite
+				</label>
+			</check>
 		</div>
 	</div>
 	<div class="form-group">
@@ -62,9 +64,11 @@
 					<input type="text" name="cruds[{{ @i }}][{{ @type }}][file]" id="cruds[{{ @i }}][{{ @type }}][file]" value="{{ @def.file }}" class="form-control">
 				</div>
 				<div class="col-md-2">
-					<label class="checkbox-inline">
-						<input type="checkbox" name="cruds[{{ @i }}][{{ @type }}][overwrite]" value="1"> Overwrite
-					</label>
+					<check if="{{ @def.exists }}">
+						<label class="checkbox-inline">
+							<input type="checkbox" name="cruds[{{ @i }}][{{ @type }}][overwrite]" value="1"> Overwrite
+						</label>
+					</check>
 				</div>
 			</div>
 			<div class="form-group">
