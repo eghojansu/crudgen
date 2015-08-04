@@ -1,0 +1,10 @@
+<?php
+
+namespace {#model_namespace#};
+
+use moe\AbstractModel;
+
+class {#model#} extends AbstractModel
+{
+    {#content#}
+}

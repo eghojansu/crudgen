@@ -1,3 +1,12 @@
+<?php
+
+namespace {#controller_namespace#};
+
+use app\component\AbstractAdmin;
+use {#model_namespace#}\{#model#};
+{#namespace_list#}
+class {#controller#} extends AbstractAdmin
+{
     private $model;
 
     public function index($moe)
@@ -8,29 +17,27 @@
 
     public function data($moe)
     {
-        $self = $moe->siteUrl('crud_{#table#}');
-        $moe->send(array('data'=>$this->model
-            ->select(<<<SEL
-concat('<a href="{$self}/input?id=', {table}.{#primary_key#}, '" class="text-green" title="Edit"><i class="fa fa-edit"></i></a>',
-'<a href="{$self}/delete?id=', {table}.{#primary_key#}, '" class="text-red" title="Delete" data-bootbox="confirm"><i class="fa fa-remove"></i></a>') as actions,
-{#columns_select#}
-SEL
-)->fetchMode('num')->all()));
+        $moe->send($this->model->data(
+            $moe->siteUrl('{#route_prefix#}{#table#}')));
     }
 
     public function input($moe)
     {
         $this->model
             ->findByPK($moe->get('GET.id'))
-            ->get(1);
+            ->read(1)
+            ->regeneratePK();
+
         if ($moe->isPost()) {
+            {#date_field#}
             $this->model->copyfrom('POST');
-            !$this->model->save() || $moe->reroute('@crud_{#table#}');
+            !$this->model->save() || $moe->reroute('@{#route_prefix#}{#table#}');
             $moe->set('message', 'Data gagal disimpan!');
             !$this->model->hasMessage() || $moe->concat('message', '<br>'.
                 $this->model->asList('messages'));
         } else
             $this->model->copyto('POST');
+        {#option_list#}
         $moe->set('fields', $this->model->fields());
         $moe->send('{#table#}/input');
     }
@@ -39,13 +46,14 @@ SEL
     {
         $moe->send(array('result'=>$this->model
             ->findByPK($moe->get('GET.id'))
-            ->get(1)
+            ->read(1)
             ->delete()));
     }
 
     public function __construct($moe)
     {
         parent::__construct($moe);
-        $moe->set('active', 'crud_{#table#}');
+        $moe->set('active', '{#route_prefix#}{#table#}');
         $this->model = {#model#}::instance();
     }
+}

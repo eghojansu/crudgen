@@ -1,0 +1,19 @@
+<?php
+
+namespace {#controller_namespace#};
+
+use app\component\AbstractAdmin;
+
+class Home extends AbstractAdmin
+{
+    public function index($moe)
+    {
+        echo 'Welcome home!';
+    }
+
+    public function __construct($moe)
+    {
+        parent::__construct($moe);
+        $moe->set('active', 'home');
+    }
+}

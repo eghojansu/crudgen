@@ -1,3 +1,7 @@
+<h1 class="page-header">
+    Data {#model#}
+    <small>input data</small>
+</h1>
 <form method="post" class="form-horizontal">
     <check if="{{ isset(@message) }}">
         <div class="alert alert-danger">{{ @message | decode }}</div>
@@ -6,7 +10,7 @@
     <div class="form-group">
         <div class="col-md-9 col-md-offset-3">
             <button class="btn btn-primary" type="submit">Simpan</button>
-            <a href="{{ 'crud_{#table#}' | url }}" class="btn btn-default">Batal</a>
+            <a href="{{ '{#route_prefix#}{#table#}' | url }}" class="btn btn-default">Batal</a>
         </div>
     </div>
 </form>
