@@ -4,13 +4,6 @@
 	"homepage": "http://github.com/eghojansu/crudgen",
 	"license": "MIT",
 	"require": {
-		"php": ">=5.3.6",
-		"eghojansu/moe": "0.2.0"
-	},
-	"minimum-stability": "dev",
-	"autoload": {
-		"psr-4": {
-			"app\\":"app/"
-		}
+		"php": ">=5.3.6"
 	}
 }

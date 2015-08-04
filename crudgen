@@ -1,0 +1,91 @@
+#!/usr/bin/env php
+<?php
+
+namespace crudgen;
+
+//! config
+$cfg     = isset($_SERVER['argv'][2])?$_SERVER['argv'][2]:
+    __DIR__ . '/template/config.ini';
+$default = array(
+    'generator' => 'Crudgen',
+    'namespace' => 'crudgen',
+    'path'      => strtr(__DIR__, '\\', '/').'/src/',
+    );
+
+(is_file($cfg) && $CONFIG = parse_ini_file($cfg, true)) ||
+    exit('Invalid configuration file!');
+
+$alt = array();
+$alt[$default['namespace']] = $default['path'];
+if (isset($CONFIG['generator'],
+          $CONFIG['generator']['namespace'],
+          $CONFIG['generator']['path']) &&
+    !isset($alt[$CONFIG['generator']['namespace']]))
+    $alt[$CONFIG['generator']['namespace']] = $CONFIG['generator']['path'];
+
+spl_autoload_register(function($class) use ($alt) {
+    $namespace = '';
+    $filepath  = '';
+    foreach (explode('\\', ltrim(substr($class, 0, strrpos($class, '\\')),
+         '\\')) as $key => $value) {
+        $namespace .= $value;
+        if (isset($alt[$namespace])) {
+            $filepath = strtr($alt[$namespace].'\\'.
+                str_replace($namespace, '', $class), '\\', '/').'.php';
+            break;
+        }
+        $namespace .= '\\';
+    }
+    if (file_exists($filepath))
+        require $filepath;
+});
+
+H::header('Script Generator tools'.H::eol().'By eghojansu'.H::eol(2).'enjoy it...!');
+
+$generator = isset($CONFIG['generator'], $CONFIG['generator']['generator'], $CONFIG['generator']['namespace'])?
+    $CONFIG['generator']['namespace'].'\\'.$CONFIG['generator']['generator']:
+    $default['namespace'].'\\'.$default['generator'];
+$done      = 'done'.H::eol();
+
+H::println('Performing action...');
+    H::println('constructing generator...', 1, 1);
+    ob_start();
+    $generator = new $generator;
+    ($generator instanceof adapter\GeneratorInterface) ||
+        H::error('Generator must implements crudgen\\adapter\\GeneratorInterface');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+
+    H::println('setting target dir...', 1, 1);
+    ob_start();
+    $generator->setTargetDir(isset($_SERVER['argv'][1])?
+        realpath($_SERVER['argv'][1]):null) || H::error('invalid target dir');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+
+    H::println('setting config...', 1, 1);
+    ob_start();
+    $generator->setConfig($CONFIG) || H::error('invalid configuration');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+
+    H::println('checking template dir...', 1, 1);
+    ob_start();
+    $generator->checkTemplateDir() || H::error('invalid template directory');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+
+    H::println('initializing...', 1, 1);
+    ob_start();
+    $generator->init() || H::error('initialization failed');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+
+    H::println('processing...', 1, 1);
+    ob_start();
+    $generator->run() || H::error('process failed');
+    H::shiftAll(ob_get_clean(), 2);
+    echo H::tab().$done;
+echo $done;
+
+exit(0);
