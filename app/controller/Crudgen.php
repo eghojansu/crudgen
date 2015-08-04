@@ -300,7 +300,7 @@ class Crudgen
                 $filter .= ",'max_length'=>$length";
         if ($col['Key']==='UNI' || ($col['Key']=='PRI' &&
             strpos($col['extra'], 'auto_increment')===false))
-            $filter .= ",'unique".$this->model($col['Field'])."'";
+            $filter .= ",'unique".ucfirst(strtolower($col['Field']))."'";
         if (isset($relation[$col['Field']]))
             $filter .= ",'exists'=>'".addslashes($this->config['mnamespace'].'\\').
                 $this->model($relation[$col['Field']][0])."->exists'";
