@@ -22,10 +22,10 @@ class Crudgen
     private $path = array();
     //! for finalizing
     private $final = array();
-    //! database
-    private $db;
     //! token generator
     private $token = '\\moegen\\Moegen';
+    //! result link
+    private $rlink;
 
     public function run()
     {
@@ -36,7 +36,7 @@ class Crudgen
         C::finish();
 
         $tokenGen = $this->token;
-        foreach ($this->db->table as $key => $table) {
+        foreach (C::get('db')->table as $key => $table) {
             C::start('Creating crud of '.$table->model.'...', 2);
 
             $token = new $tokenGen($table);
@@ -53,6 +53,8 @@ class Crudgen
         $this->performComposer();
 
         C::finish();
+
+        (!$this->rlink) || C::header('You can now visit: '.$this->rlink, 1, 2, true);
     }
 
     private function createCrud(adapter\AbstractToken $token)
@@ -197,16 +199,25 @@ class Crudgen
 
     public function __construct($dir)
     {
+        $c = C::config();
+
         C::start('Setting project directory to: '.$dir.'...');
         if (file_exists(realpath($dir)))
             $dir = realpath($dir);
         else
-            !mkdir($dir, 0755) || $dir = realpath($dir);
+            !mkdir($dir, 0755, true) || $dir = realpath($dir);
         $this->tar = C::fixslashes($dir);
         is_dir($this->tar) || C::error('invalid dir');
         C::finish();
 
-        $c = C::config();
+        if ($c['server']) {
+            C::start('Setting project link: ...');
+            isset($c['server']['host'], $c['server']['path']) || C::error('invalid server config');
+            $this->rlink = C::fixslashes($c['server']['host']).
+                str_replace(C::fixslashes($c['server']['path']), '', $this->tar);
+            C::finish();
+        }
+
         C::start('Checking config...');
         isset($c['generator']['template'],
               $c['database']['name'],
@@ -289,7 +300,7 @@ class Crudgen
 
         C::start('Construct hole database...', 0, 1);
         ob_start();
-        $this->db = new Database($c['database']);
+        C::set('db', new Database($c['database']));
         C::shiftAll(ob_get_clean(), 1);
         C::finish();
 
