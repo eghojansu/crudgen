@@ -210,6 +210,7 @@ class Crudgen
         C::start('Checking config...');
         isset($c['generator']['template'],
               $c['database']['name'],
+              $c['database']['host'],
               $c['database']['username'],
               $c['database']['password'],
               $c['fixed'],
