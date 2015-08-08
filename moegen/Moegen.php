@@ -85,7 +85,7 @@ FUNC;
         return <<<FUNC
     public function $self(\$url)
     {
-        return array('data'=>\$this
+        return array('data'=>\$this{$this->use_relation}
             ->select(<<<SEL
 concat('<a href="{\$url}/input?id=', {table}.{#primary_key#}, '" class="text-green" title="Edit"><i class="fa fa-edit"></i></a>',
 '<a href="{\$url}/delete?id=', {table}.{#primary_key#}, '" class="text-red" title="Delete" data-bootbox="confirm"><i class="fa fa-remove"></i></a>') as actions,
@@ -252,9 +252,9 @@ FUNC;
         $option_list    =
         $date_field     = '';
         foreach ($table->column as $key => $column) {
-            $column_header .= $t[32].'<th>{{ @fields.'.$column->Field.' }}</th>'.$eol;
+            $column_select .= '{table}.'.$column->Field.','.$eol;
+            $column_header .= $t[42].'<th>{{ @fields.'.$column->Field.' }}</th>'.$eol;
             $fields_form   .= $this->form($column).$eol;
-            $column_select .= $column->Field.','.$eol;
             $schema        .= str_replace(
                 array('field', 'label', 'EOL', 'T4', 'T3'),
                 array($column->Field, $column->label, $eol, $t[4], $t[3]),
@@ -274,6 +274,19 @@ FUNC;
                 $t[3].'$moe->set(\'POST.'.$column->Field.'\', implode(\'-\', $'.$column->Field.'));'.$eol;
 
             !$column->isPrimaryKey() || $pk .= "'{$column->Field}', ";
+        }
+
+        if ($table->relation) {
+            $this->use_relation = $eol.$t[3].'->useRelation(\'all\')';
+            $db = C::get('db');
+            foreach ($table->relation as $rel)
+                foreach ($db->table[$rel['table']]->column as $column) {
+                    $tname = $db->table[$rel['table']]->name;
+                    $column_select .= $tname.'.'.$column->Field.' as '.$tname.'_'.$column->Field.','.$eol;
+                    $column_header .= $t[42].'<th>'.$column->label.'</th>'.$eol;
+                }
+            $db = null;
+            unset($db);
         }
 
         $this->controller     = 'Crud'.$table->model;

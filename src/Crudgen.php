@@ -22,8 +22,6 @@ class Crudgen
     private $path = array();
     //! for finalizing
     private $final = array();
-    //! database
-    private $db;
     //! token generator
     private $token = '\\moegen\\Moegen';
     //! result link
@@ -38,7 +36,7 @@ class Crudgen
         C::finish();
 
         $tokenGen = $this->token;
-        foreach ($this->db->table as $key => $table) {
+        foreach (C::get('db')->table as $key => $table) {
             C::start('Creating crud of '.$table->model.'...', 2);
 
             $token = new $tokenGen($table);
@@ -302,7 +300,7 @@ class Crudgen
 
         C::start('Construct hole database...', 0, 1);
         ob_start();
-        $this->db = new Database($c['database']);
+        C::set('db', new Database($c['database']));
         C::shiftAll(ob_get_clean(), 1);
         C::finish();
 
