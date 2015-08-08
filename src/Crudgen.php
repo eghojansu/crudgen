@@ -54,7 +54,7 @@ class Crudgen
 
         C::finish();
 
-        (!$this->rlink) || C::header('You can now visit: '.$this->rlink, 1, 2, true);
+        return $this->rlink?'You can now visit: '.$this->rlink:'';
     }
 
     private function createCrud(adapter\AbstractToken $token)
