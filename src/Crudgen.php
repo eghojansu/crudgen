@@ -26,6 +26,8 @@ class Crudgen
     private $db;
     //! token generator
     private $token = '\\moegen\\Moegen';
+    //! result link
+    private $rlink;
 
     public function run()
     {
@@ -53,6 +55,8 @@ class Crudgen
         $this->performComposer();
 
         C::finish();
+
+        (!$this->rlink) || C::msg('You can now visit: '.$this->rlink);
     }
 
     private function createCrud(adapter\AbstractToken $token)
@@ -197,16 +201,25 @@ class Crudgen
 
     public function __construct($dir)
     {
+        $c = C::config();
+
         C::start('Setting project directory to: '.$dir.'...');
         if (file_exists(realpath($dir)))
             $dir = realpath($dir);
         else
-            !mkdir($dir, 0755) || $dir = realpath($dir);
+            !mkdir($dir, 0755, true) || $dir = realpath($dir);
         $this->tar = C::fixslashes($dir);
         is_dir($this->tar) || C::error('invalid dir');
         C::finish();
 
-        $c = C::config();
+        if ($c['server']) {
+            C::start('Setting project link: ...');
+            isset($c['server']['host'], $c['server']['path']) || C::error('invalid server config');
+            $this->rlink = C::fixslashes($c['server']['host']).
+                str_replace(C::fixslashes($c['server']['path']), '', $this->tar);
+            C::finish();
+        }
+
         C::start('Checking config...');
         isset($c['generator']['template'],
               $c['database']['name'],
