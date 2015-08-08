@@ -4,7 +4,7 @@
 namespace crudgen;
 
 //! crudgen version
-define('CRUDGEN_VERSION', '2.0.0');
+define('CRUDGEN_VERSION', '2');
 define('TIME_BEGIN', microtime(true));
 
 //! current dir
@@ -49,9 +49,11 @@ C::header('Script Generator tools'.C::eol().
 
 C::start('Performing action...', 0, 1);
     ob_start();
-    (new Crudgen(isset($_SERVER['argv'][1])?$_SERVER['argv'][1]:null))->run();
+    $msg = (new Crudgen(isset($_SERVER['argv'][1])?$_SERVER['argv'][1]:null))->run();
     C::shiftAll(ob_get_clean(), 1);
 C::finish();
+
+!$msg || C::header($msg, 1, 2, true);
 
 C::footprint();
 exit(0);
