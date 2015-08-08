@@ -17,10 +17,9 @@ class Database
     public function __construct(array $opt)
     {
         C::start('Trying construct PDO...', 0, 1);
-        $msg = 'done';
         try {
             C::start('Constructing PDO...', 1);
-            $dsn = 'mysql:dbname='.$opt['name'].';host=localhost';
+            $dsn = 'mysql:dbname='.$opt['name'].';host='.$opt['host'];
             $pdo = new PDO($dsn, $opt['username'], $opt['password']);
             C::finish();
 
@@ -54,7 +53,7 @@ SQL
             $query = $pdo->query('show tables');
             while ($table = $query->fetchColumn()) {
                 C::start('Constructing table: '.$table.'...', 2);
-                $this->table[] = new Table($table, $pdo
+                $this->table[$table] = new Table($table, $pdo
                         ->query('show columns from '.$table)
                         ->fetchAll(PDO::FETCH_ASSOC),
                     isset($this->relation[$table])?$this->relation[$table]:array(),
@@ -66,8 +65,11 @@ SQL
             $pdo = null;
         } catch (PDOException $e) {
             $msg = $e->getMessage();
-            $msg = 'Connection failed: '.ltrim(substr($msg, strrpos($msg, ']')+1));
+            C::error('Connection failed: '.ltrim(substr($msg, strrpos($msg, ']')+1)));
         }
-        C::finish($msg);
+
+        count($this->table) || C::error('No tables in database '.$opt['name']);
+
+        C::finish();
     }
 }
