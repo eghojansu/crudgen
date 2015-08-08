@@ -3,89 +3,55 @@
 
 namespace crudgen;
 
+//! crudgen version
+define('CRUDGEN_VERSION', '2.0.0');
+define('TIME_BEGIN', microtime(true));
+
+//! current dir
+$dir = strtr(__DIR__, '\\', '/').'/';
+
 //! config
 $cfg     = isset($_SERVER['argv'][2])?$_SERVER['argv'][2]:
-    __DIR__ . '/template/config.ini';
-$default = array(
-    'generator' => 'Crudgen',
-    'namespace' => 'crudgen',
-    'path'      => strtr(__DIR__, '\\', '/').'/src/',
-    );
+    $dir . '/moegen/config.ini';
 
 (is_file($cfg) && $CONFIG = parse_ini_file($cfg, true)) ||
     exit('Invalid configuration file!');
 
-$alt = array();
-$alt[$default['namespace']] = $default['path'];
-if (isset($CONFIG['generator'],
-          $CONFIG['generator']['namespace'],
-          $CONFIG['generator']['path']) &&
-    !isset($alt[$CONFIG['generator']['namespace']]))
-    $alt[$CONFIG['generator']['namespace']] = $CONFIG['generator']['path'];
+$alt = array(
+    'crudgen'=>$dir.'src/',
+    'moegen'=>$dir.'moegen/'
+    );
+!isset($CONFIG['namespaces_lookup']) || $alt += $CONFIG['namespaces_lookup'];
 
-spl_autoload_register(function($class) use ($alt) {
-    $namespace = '';
-    $filepath  = '';
-    foreach (explode('\\', ltrim(substr($class, 0, strrpos($class, '\\')),
-         '\\')) as $key => $value) {
-        $namespace .= $value;
-        if (isset($alt[$namespace])) {
-            $filepath = strtr($alt[$namespace].'\\'.
-                str_replace($namespace, '', $class), '\\', '/').'.php';
+spl_autoload_register(function($c) use ($alt) {
+    $ns = $fp = '';
+    foreach (explode('\\', ltrim(substr($c, 0, strrpos($c, '\\')), '\\'))
+        as $key => $value)
+    {
+        $ns .= $value;
+        if (isset($alt[$ns])) {
+            $fp = strtr($alt[$ns].str_replace($ns, '', $c), '\\', '/').'.php';
             break;
         }
-        $namespace .= '\\';
+        $ns .= '\\';
     }
-    if (file_exists($filepath))
-        require $filepath;
+    if (file_exists($fp))
+        require $fp;
 });
 
-H::header('Script Generator tools'.H::eol().'By eghojansu'.H::eol(2).'enjoy it...!');
+C::config(array('generator'=>array('template'=>$dir.'moegen/')));
+C::config($CONFIG);
 
-$generator = isset($CONFIG['generator'], $CONFIG['generator']['generator'], $CONFIG['generator']['namespace'])?
-    $CONFIG['generator']['namespace'].'\\'.$CONFIG['generator']['generator']:
-    $default['namespace'].'\\'.$default['generator'];
-$done      = 'done'.H::eol();
+C::header('Script Generator tools'.C::eol().
+    'Version '.CRUDGEN_VERSION.C::eol().
+    'By eghojansu'.C::eol(2).
+    'enjoy it...!');
 
-H::println('Performing action...');
-    H::println('constructing generator...', 1, 1);
+C::start('Performing action...', 0, 1);
     ob_start();
-    $generator = new $generator;
-    ($generator instanceof adapter\GeneratorInterface) ||
-        H::error('Generator must implements crudgen\\adapter\\GeneratorInterface');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
+    (new Crudgen(isset($_SERVER['argv'][1])?$_SERVER['argv'][1]:null))->run();
+    C::shiftAll(ob_get_clean(), 1);
+C::finish();
 
-    H::println('setting target dir...', 1, 1);
-    ob_start();
-    $generator->setTargetDir(isset($_SERVER['argv'][1])?
-        realpath($_SERVER['argv'][1]):null) || H::error('invalid target dir');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
-
-    H::println('setting config...', 1, 1);
-    ob_start();
-    $generator->setConfig($CONFIG) || H::error('invalid configuration');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
-
-    H::println('checking template dir...', 1, 1);
-    ob_start();
-    $generator->checkTemplateDir() || H::error('invalid template directory');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
-
-    H::println('initializing...', 1, 1);
-    ob_start();
-    $generator->init() || H::error('initialization failed');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
-
-    H::println('processing...', 1, 1);
-    ob_start();
-    $generator->run() || H::error('process failed');
-    H::shiftAll(ob_get_clean(), 2);
-    echo H::tab().$done;
-echo $done;
-
+C::footprint();
 exit(0);

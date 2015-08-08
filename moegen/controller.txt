@@ -12,13 +12,13 @@ class {#controller#} extends AbstractAdmin
     public function index($moe)
     {
         $moe->set('fields', $this->model->fields());
-        $moe->send('{#table#}/list');
+        $moe->send('{#table_name#}/list');
     }
 
     public function data($moe)
     {
         $moe->send($this->model->data(
-            $moe->siteUrl('{#route_prefix#}{#table#}')));
+            $moe->siteUrl('{#route_name_prefix#}{#table_name#}')));
     }
 
     public function input($moe)
@@ -31,15 +31,16 @@ class {#controller#} extends AbstractAdmin
         if ($moe->isPost()) {
             {#date_field#}
             $this->model->copyfrom('POST');
-            !$this->model->save() || $moe->reroute('@{#route_prefix#}{#table#}');
+            !$this->model->save() || $moe->reroute('@{#route_name_prefix#}{#table_name#}');
             $moe->set('message', 'Data gagal disimpan!');
             !$this->model->hasMessage() || $moe->concat('message', '<br>'.
                 $this->model->asList('messages'));
+
         } else
             $this->model->copyto('POST');
         {#option_list#}
         $moe->set('fields', $this->model->fields());
-        $moe->send('{#table#}/input');
+        $moe->send('{#table_name#}/input');
     }
 
     public function delete($moe)
@@ -53,7 +54,7 @@ class {#controller#} extends AbstractAdmin
     public function __construct($moe)
     {
         parent::__construct($moe);
-        $moe->set('active', '{#route_prefix#}{#table#}');
+        $moe->set('active', '{#route_name_prefix#}{#table_name#}');
         $this->model = {#model#}::instance();
     }
 }

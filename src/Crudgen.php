@@ -2,609 +2,296 @@
 
 namespace crudgen;
 
-use PDO;
-use PDOException;
 use ZipArchive;
 
-class Crudgen implements adapter\GeneratorInterface
+class Crudgen
 {
     //! target dir
     private $tar;
     //! template dir
     private $dir;
-    //! template list
-    private $tpl = array('controller','model','view_list','view_input','home');
-    //! template extension
-    private $ext = '.txt';
-    //! php extension
-    private $php = '.php';
-    //! html extension
-    private $html = '.html';
-    //! ini extension
-    private $ini = '.ini';
+    //! composer path
+    private $cmp;
+    //! composer command
+    private $cmpCmd = 'install';
     //! project structure
     private $str = 'structure.zip';
-    //! composer path
-    private $cmp = 'composer';
-    //! config files
-    private $cff = array('app','database','menu','routes','system');
-    //! token replacer
-    private $token = array();
-    const TOKEN = 'table|label|controller|model|primary_key|controller_namespace|model_namespace|date_field|option_list|namespace_list|route_prefix';
-    //! config holder
-    private $config = array();
-    //! pdo object
-    private $pdo;
     //! temp dir
     private $tempDir;
-    //! stop the process
-    private $stop = false;
-    //! route content
-    private $route = '';
-    //! menu content
-    private $menu = '';
-
-    public function setTargetDir($dir)
-    {
-        $dir = H::fixslashes($dir);
-        echo 'Setting project directory to: '.$dir.'...';
-        $exists = file_exists($dir);
-        $this->tar = $dir;
-        echo $exists?'OK':'Fail';
-        H::line();
-
-        return $exists;
-    }
-
-    public function setConfig(array $config)
-    {
-        $this->config = array_merge($this->config, $config);
-        H::println('Checking config...'.
-            (($ok = isset($config['namespace']['config'],
-                $config['namespace']['controller'],
-                $config['namespace']['model'],
-                $config['namespace']['view']))?'OK':'Invalid configuration!'));
-
-        !isset($config['structure']) ||$this->str = $config['structure'];
-
-        return $ok;
-    }
-
-    public function checkTemplateDir()
-    {
-        H::println('Setting template directory to...'.
-            (($ok = isset($this->config['generator']['template']) &&
-                $this->config['generator']['template'] &&
-                file_exists($this->config['generator']['template']))?
-                    $this->config['generator']['template']:'nothing'));
-
-        !$ok || $this->dir = H::fixslashes($this->config['generator']['template']);
-
-        return $ok;
-    }
-
-    public function init()
-    {
-        H::println('Initializing...');
-        $this->checkFile($this->dir.$this->str);
-        foreach ($this->tpl as $tpl)
-            if (!$this->checkFile($this->dir.$tpl.$this->ext))
-                break;
-        $this->checkComposer();
-        $this->checkDB();
-        H::println($this->stop?'failed':'OK');
-
-        return !$this->stop;
-    }
+    //! path lookup
+    private $path = array();
+    //! for finalizing
+    private $final = array();
+    //! database
+    private $db;
+    //! token generator
+    private $token = '\\moegen\\Moegen';
 
     public function run()
     {
-        H::println('Starting make project...');
+        C::start('Starting make project...', 0, 1);
 
-        $msg = 'done';
-        if ($this->buildStructure()) {
-            H::shift();
-            echo 'Reading relations...';
-            $db    = $this->config['database']['name'];
-            $query = $this->pdo->query(<<<SQL
-SELECT
-`TABLE_NAME`,
-`COLUMN_NAME`,
-`REFERENCED_TABLE_NAME`,
-`REFERENCED_COLUMN_NAME`
-FROM `information_schema`.`KEY_COLUMN_USAGE`
-WHERE `CONSTRAINT_SCHEMA` = '$db' AND
-`REFERENCED_TABLE_SCHEMA` IS NOT NULL AND
-`REFERENCED_TABLE_NAME` IS NOT NULL AND
-`REFERENCED_COLUMN_NAME` IS NOT NULL
-SQL
-                );
-            $referenced_table = array();
-            $relations        = array();
-            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                isset($relations[$row['TABLE_NAME']]) ||
-                    $relations[$row['TABLE_NAME']] = array();
-                $relations[$row['TABLE_NAME']][$row['COLUMN_NAME']] = array(
-                    'table'=>$row['REFERENCED_TABLE_NAME'],
-                    'field'=>$row['REFERENCED_COLUMN_NAME'],
+        C::start('Building structure...', 1);
+        $this->buildStructure($msg) || C::error($msg);
+        C::finish();
+
+        $tokenGen = $this->token;
+        foreach ($this->db->table as $key => $table) {
+            C::start('Creating crud of '.$table->model.'...', 2);
+
+            $token = new $tokenGen($table);
+            $this->createCrud($token);
+
+            C::finish();
+        }
+
+        C::start('Finalizing...', 1);
+        isset($token) || C::error('unable to finalizing');
+        $this->finalize($token);
+        C::finish();
+
+        $this->performComposer();
+
+        C::finish();
+    }
+
+    private function createCrud(adapter\AbstractToken $token)
+    {
+        foreach (C::config('files')?:array() as $key => $value) {
+            $path = isset($value['path'])?C::fixslashes($value['path']):'';
+
+            $content = '';
+            $file    = $token->replaceToken($value['name']);
+            $e       = C::ext($file);
+            ($path || !isset($this->path[$e])) || $path = $this->path[$e];
+
+            if (isset($value['template'])) {
+                $e = C::ext($value['template']);
+                ($path || !isset($this->path[$e])) || $path = $this->path[$e];
+
+                $content = file_get_contents($this->dir.$value['template']);
+            }
+
+            !$path || $path = $token->replaceToken($path);
+
+            if (isset($value['method'])) {
+                $args = array($content);
+                $content = method_exists($token, $value['method'])?
+                    call_user_func_array(array($token, $value['method']), $args):
+                    C::call($value['option']['method'], $args);
+            }
+            elseif (isset($value['replaceOriginal']))
+                $content = file_get_contents($this->tar.$path.$value['name']);
+            elseif (isset($value['copyConfig'])) {
+                $content = '';
+                foreach (C::config($key) as $key2 => $value2)
+                    $content .= $key2.' = '.$value2.C::eol();
+                $content = trim($content);
+            }
+
+            $path = $this->tar.$path.$file;
+            $content = $token->replaceToken($content);
+            if (isset($value['createAtTheEnd'])) {
+                $sectionName = $key;
+                !isset($value['sectionName']) || $sectionName = $value['sectionName'];
+                !isset($value['sectionUppercase']) || $sectionName = strtoupper($key);
+                $option = array(
+                    'file'=>$path,
+                    'sectionName'=>$sectionName,
+                    'method'=>$value['createAtTheEnd'],
+                    'replaceOriginal'=>isset($value['replaceOriginal']),
                     );
-                in_array($row['REFERENCED_TABLE_NAME'], $referenced_table) ||
-                    array_push($referenced_table, $row['REFERENCED_TABLE_NAME']);
-            }
-            H::println('done');
 
-            $query = $this->pdo->query('show tables');
+                if (isset($value['template']) && !isset($value['noConcat']))
+                    if (isset($this->final[$key]))
+                        $this->final[$key]['content'] .= C::eol(2).$content;
+                    else
+                        $this->final[$key] = array('content'=>$content)+$option;
+                else
+                    $this->final[$key] = array('content'=>$content)+$option;
+            } else
+                $this->write($path, $token->replaceToken($content)) || C::error('Unable to write '.$path);
+        }
+    }
 
-            while ($table = $query->fetchColumn()) {
-                H::shift();
-                echo 'Constructing table: '.$table.'...';
-                $table = new Table($table,
-                    $this->pdo
-                        ->query('show columns from '.$table)
-                        ->fetchAll(PDO::FETCH_ASSOC),
-                    isset($relations[$table])?$relations[$table]:array(),
-                    in_array($table, $referenced_table));
-                H::println('done');
-
-                H::println('Creating crud of '.$table->model.'...', 1, 2);
-                ob_start();
-                $this->initToken($table);
-                $this->createController($table);
-                $this->createModel($table);
-                $this->createViewInput($table);
-                $this->createViewList($table);
-                $this->appendRoute();
-                $this->appendMenu();
-                H::shiftAll(ob_get_clean(), 3);
-                H::println('done', 1, 2);
+    private function finalize(adapter\AbstractToken $token)
+    {
+        foreach ($this->final as $key => $value) {
+            if (!is_bool($value['method'])) {
+                $args = array($value['content']);
+                $content = method_exists($token, $value['method'])?
+                    call_user_func_array(array($token, $value['method']), $args):
+                    C::call($value['method'], $args);
+                !$content || $value['content'] = $content;
+                unset($content);
             }
 
-            $this->pdo = null;
+            if (C::ext($value['file'])==='ini')
+                $value['content'] = '['.$value['sectionName'].']'.C::eol().$value['content'];
 
-            H::println('Finalizing...');
-            ob_start();
-            $this->finalize() || H::error('Finalization failed');
-            H::shiftAll(ob_get_clean(), 2);
-            H::println('done', 2);
-        } else
-            $msg = 'failed';
-
-        H::println($msg);
-
-        return true;
+            $this->write($value['file'], $token->replaceToken($value['content']), $value['replaceOriginal']) ||
+                C::error('Unable to write '.$value['file']);
+        }
     }
 
-    private function initToken(Table $table)
+    private function buildStructure(&$msg)
     {
-        foreach (explode('|', self::TOKEN) as $value)
-            $this->token($value, '');
-
-        $this->token('controller_namespace', $this->config['namespace']['controller']);
-        $this->token('model_namespace', $this->config['namespace']['model']);
-        $this->token('controller', 'Crud'.$table->model);
-        $this->token('model', $table->model);
-        $this->token('table', $table->name);
-        $this->token('label', $table->label);
-        $this->token('primary_key', $table->primary_key);
-        $this->token('date_field', $table->date_field);
-        $this->token('option_list', $table->option_list);
-        $this->token('namespace_list', $table->namespace_list);
-        $this->token('route_prefix', 'crud_');
-    }
-
-    private function createController(Table $table)
-    {
-        $name = 'controller';
-        echo ucfirst($name).' '.$this->token($name).'...';
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace'][$name]).
-            $this->token($name).
-            $this->php,
-        file_get_contents($this->dir.$name.$this->ext));
-
-        echo 'done';
-        H::line();
-    }
-
-    private function createModel(Table $table)
-    {
-        $name = 'model';
-        echo ucfirst($name).' '.$this->token($name).'...';
-
-        $content = $table->schema();
-        if ($t = $table->primaryKey())
-            $content .= H::eol(2).$t;
-        if ($t = $table->relation())
-            $content .= H::eol(2).$t;
-        if ($t = $table->optionList())
-            $content .= H::eol(2).$t;
-        if ($t = $table->data())
-            $content .= H::eol(2).$t;
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace'][$name]).
-            $this->token($name).
-            $this->php,
-        str_replace('{#content#}', trim($content),
-            file_get_contents($this->dir.$name.$this->ext)));
-
-        echo 'done';
-        H::line();
-    }
-
-    private function createViewList(Table $table)
-    {
-        $name = 'view_list';
-        echo ucfirst($name).'...';
-
-        $this->token('column_header', $table->column_header);
-
-        $dir = $this->tar.H::fixslashes($this->config['namespace']['view']).$table->name;
-        is_dir($dir) || mkdir($dir, 0755, true);
-        $this->write($dir.'/list'.$this->html,
-            file_get_contents($this->dir.$name.$this->ext));
-
-        echo 'done';
-        H::line();
-    }
-
-    private function createViewInput(Table $table)
-    {
-        $name = 'view_input';
-        echo ucfirst($name).'...';
-
-        $this->token('fields_form', $table->fields_form);
-
-        $dir = $this->tar.H::fixslashes($this->config['namespace']['view']).$table->name;
-        is_dir($dir) || mkdir($dir, 0755, true);
-        $this->write($dir.'/input'.$this->html,
-            file_get_contents($this->dir.$name.$this->ext));
-
-        echo 'done';
-        H::line();
-    }
-
-    private function appendRoute()
-    {
-        $name = 'append route';
-        echo ucfirst($name).'...';
-
-        $this->route .= str_replace(
-            array_keys($this->token),
-            array_values($this->token),
-            <<<ROUTE
-GET @{#route_prefix#}{#table#}: /crud/{#table#} = {#controller_namespace#}\{#controller#}->index
-GET /crud/{#table#}/data [ajax] = {#controller_namespace#}\{#controller#}->data
-GET|POST /crud/{#table#}/input = {#controller_namespace#}\{#controller#}->input
-GET /crud/{#table#}/delete [ajax] = {#controller_namespace#}\{#controller#}->delete
-ROUTE
-).H::eol(2);
-
-        echo 'done';
-        H::line();
-    }
-
-    private function appendMenu()
-    {
-        $name = 'append menu';
-        echo ucfirst($name).'...';
-
-        $this->menu .= str_replace(
-            array_keys($this->token),
-            array_values($this->token),
-            <<<ROUTE
-{#route_prefix#}{#table#} = {#label#}
-ROUTE
-).H::eol();
-
-        echo 'done';
-        H::line();
-    }
-
-    private function saveSystem()
-    {
-        echo 'Saving system...';
-
-        $ui = H::fixslashes($this->config['namespace']['view']);
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['config']).
-            'system'.$this->ini, <<<INI
-; System Configuration
-; Overrides moe variabels
-
-[globals]
-UI       = $ui
-TEMPLATE = template/dashboard
-INI
-            );
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveRoute()
-    {
-        echo 'Saving route...';
-
-        $ns = $this->token('controller_namespace');
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['config']).
-            'routes'.$this->ini, <<<INI
-; routes
-
-[routes]
-GET @home: / = $ns\Home->index
-
-{$this->route}
-INI
-            );
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveMenu()
-    {
-        echo 'Saving menu...';
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['config']).
-            'menu'.$this->ini, <<<INI
-; menu
-
-[menu]
-{$this->menu}
-INI
-            );
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveDatabase()
-    {
-        echo 'Saving Database...';
-
-        $ts = '';
-        foreach ($this->config['database'] as $key => $value)
-            $ts .= $key.' = '.$value.H::eol();
-        $ts = trim($ts);
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['config']).
-            'database'.$this->ini, <<<INI
-; Database Configuration
-
-[DATABASE]
-type = mysql
-$ts
-INI
-            );
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveApp()
-    {
-        echo 'Saving app...';
-
-        $t = array(
-            'name'=>'CRUD Generator',
-            'desc'=>'CRUD Generator',
-            'author'=>'eghojansu',
-            'year'=>'2015',
-            );
-        !isset($this->config['app']) || $t += $this->config['app'];
-
-        $ts = '';
-        foreach ($t as $key => $value)
-            $ts .= $key.' = '.(is_bool($value)?($value?'yes':'no'):$value).H::eol();
-        $ts = trim($ts);
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['config']).
-            'app'.$this->ini, <<<INI
-; Application Configuration
-
-[app]
-$ts
-INI
-            );
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveIndex()
-    {
-        echo 'saving index...';
-
-        ksort($this->cff);
-        $t = "'".implode("',".H::eol().H::tab(1,4)."'", $this->cff)."'";
-        $this->token('config_files', $t);
-
-        $index = $this->tar.'index'.$this->php;
-        $this->write($index, file_get_contents($index), true);
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function saveHome()
-    {
-        echo 'saving home...';
-
-        $this->write($this->tar.
-            H::fixslashes($this->config['namespace']['controller']).
-            'Home'.
-            $this->php,
-        file_get_contents($this->dir.'home'.$this->ext));
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function performComposer()
-    {
-        echo 'performing composer...';
-
-        ob_start();
-        $wd = getcwd();
-        chdir($this->tar);
-        exec($this->cmp.' install', $result);
-        chdir($wd);
-        ob_clean();
-
-        echo 'done';
-        H::line();
-
-        return true;
-    }
-
-    private function finalize()
-    {
-        return ($this->saveSystem() &&
-            $this->saveRoute() &&
-            $this->saveMenu() &&
-            $this->saveDatabase() &&
-            $this->saveApp() &&
-            $this->saveIndex() &&
-            $this->saveHome() &&
-            $this->performComposer());
-    }
-
-    private function write($file, $content, $overwrite = false)
-    {
-        return (file_exists($file) && !$overwrite)?-1:
-            (int) file_put_contents($file, str_replace(
-                array_keys($this->token), array_values($this->token),
-                    str_replace(
-                        array_keys($this->token), array_values($this->token), $content)));
-    }
-
-    private function buildStructure()
-    {
-        H::shift();
-        echo 'Creating structure...';
-
         $zip = new ZipArchive;
-        $msg = 'done';
-        if ($zip->open($this->dir.$this->str) === true) {
+        if ($zip->open($this->str) === true) {
             $zip->extractTo($this->tempDir);
             $zip->close();
 
-            $stop  = !$this->checkNamespace($msg);
-            $files = $stop?array():glob($this->tempDir.'*');
+            $files = glob($this->tempDir.'*');
             foreach ($files as $value) {
                 $real = $this->tar.str_replace($this->tempDir, '', $value);
                 (file_exists($real) || !file_exists($value)) ||
                     rename($value, $real);
             }
 
-            ($stop || !$stop = !file_exists($this->tar.'composer.json')) ||
+            (!$stop = ($this->cmp && !file_exists($this->tar.'composer.json'))) ||
                 $msg = 'composer.json was not exists';
-            ($stop || !$stop = !rename($this->tar.'dothtaccess', $this->tar.'.htaccess')) ||
+            ($stop || !$stop = (file_exists($this->tar.'dothtaccess') &&
+                !rename($this->tar.'dothtaccess', $this->tar.'.htaccess'))) ||
                 $msg = 'cannot rename .htaccess';
-            ($stop || !$stop = !rename($this->tar.'dotgitignore', $this->tar.'.gitignore')) ||
+            ($stop || !$stop = (file_exists($this->tar.'dotgitignore') &&
+                !rename($this->tar.'dotgitignore', $this->tar.'.gitignore'))) ||
                 $msg = 'cannot rename .gitignore';
-            ($stop || chmod($this->tar.'runtime', 0757)) ||
-                $msg = 'cannot change mod runtime dir it need to be writable';
-        } else
+            foreach ($stop?array():(C::config('chmod')?:array()) as $dir=>$perm) {
+                if (!file_exists($this->tar.$dir) ||
+                    !chmod($this->tar.$dir, C::perm($perm))) {
+                    $msg = 'cannot chmod '.$dir.' to '.$perm;
+                    break;
+                }
+            }
+        } else {
+            $msg = 'cannot open '.$this->str;
             $stop = true;
+        }
 
-        H::println($msg);
-
-        return !($this->stop = ($this->stop || $stop));
+        return !$stop;
     }
 
-    private function checkNamespace(&$msg)
+    private function write($file, $content, $overwrite = false)
     {
-        foreach ($this->config['namespace'] as $value)
-            if (!file_exists($this->tempDir.H::fixslashes($value))) {
-                $msg = 'Invalid namespace '.$value;
-                return false;
+        if (file_exists($file) && !$overwrite)
+            return -1;
+        $dir = dirname($file);
+        is_dir($dir) || mkdir($dir, 0755, true);
+        return (int) file_put_contents($file, $content);
+    }
+
+    private function performComposer()
+    {
+        if (!$this->cmp)
+            return;
+
+        C::start('Performing composer...');
+
+        $wd = getcwd();
+        chdir($this->tar);
+        exec($this->cmp.' '.$this->cmpCmd, $result);
+        chdir($wd);
+
+        C::finish();
+    }
+
+    public function __construct($dir)
+    {
+        C::start('Setting project directory to: '.$dir.'...');
+        if (file_exists(realpath($dir)))
+            $dir = realpath($dir);
+        else
+            !mkdir($dir, 0755) || $dir = realpath($dir);
+        $this->tar = C::fixslashes($dir);
+        is_dir($this->tar) || C::error('invalid dir');
+        C::finish();
+
+        $c = C::config();
+        C::start('Checking config...');
+        isset($c['generator']['template'],
+              $c['database']['name'],
+              $c['database']['username'],
+              $c['database']['password'],
+              $c['fixed'],
+              $c['files']) || C::error('invalid config');
+        C::finish();
+
+        C::start('Setting template directory to: '.
+            C::config('generator')['template'].'...');
+        file_exists(C::config('generator')['template']) || C::error('fail');
+        $this->dir = C::fixslashes(C::config('generator')['template']);
+        C::finish();
+
+        C::start('Checking lookup path...');
+        $paths = C::config('path')?:array();
+        foreach ($paths as $key => $value)
+            $paths[$key] = C::fixslashes($value);
+        $this->path = $paths;
+        C::config('path', $paths);
+        C::finish();
+
+        C::start('Checking files...', 0, 1);
+        ob_start();
+        $ok    = true;
+        $nss   = array();
+        foreach (C::config('files') as $key => $value) {
+            C::start('Checking: '.$key.'...');
+            isset($value['name']) || C::error('no key name');
+            $msg  = 'OK';
+            $path = isset($value['path'])?C::fixslashes($value['path']):'';
+            $e    = C::ext($value['name']);
+            ($path || !isset($paths[$e])) || $path = $paths[$e];
+            if (isset($value['template'])) {
+                $ok = file_exists($this->dir.$value['template']);
+                $ok || $msg = 'file not exists';
+            }
+            elseif (isset($value['copyConfig'])) {
+                $ok = isset($c[$key]);
+                $ok || $msg = 'no '.$key.' in config';
             }
 
-        return true;
-    }
+            !$path || $nss[$key.'_namespace'] = rtrim(strtr($path, '/', '\\'), '\\');
 
-    private function checkFile($file)
-    {
-        H::shift();
-        printf('Checking file %s...%s',
-            str_replace(array($this->tar, $this->dir), '', $file),
-            ($stop = !is_file($file))?'file is not exists':'OK');
-        H::line();
+            C::finish($msg);
 
-        return !($this->stop = ($this->stop || $stop));
-    }
+            if ($ok) continue;
+            else break;
+        }
+        C::config('namespaces', $nss);
+        C::shiftAll(ob_get_clean(), 1);
+        $ok || C::error('Failed');
+        C::finish();
 
-    private function checkComposer()
-    {
-        $composer = isset($this->config['composer'])?
-            $this->config['composer']:$this->cmp;
-        exec($composer.' -v', $tmp);
-        $this->cmp = $composer;
+        if (isset($c['composer'], $c['composer']['path'])) {
+            C::start('Checking composer...');
+            exec($c['composer']['path'].' -v', $tmp);
+            isset($tmp[7]) || C::error('Composer was not installed');
+            $this->cmp = $c['composer']['path'];
+            !isset($c['composer']['command']) || $this->cmpCmd = $c['composer']['command'];
+            C::finish();
+        }
 
-        H::shift();
-        printf('Checking composer...%s',
-            ($stop = !isset($tmp[7]))?'Composer was not installed':'OK');
-        H::line();
+        if (isset($c['generator']['token']))
+            $this->token = $c['generator']['token'];
 
-        return !($this->stop = ($this->stop || $stop));
-    }
+        $this->str = $this->dir.$this->str;
+        if (isset($c['generator']['structure'])) {
+            C::start('Checking structure...');
+            if (file_exists($c['generator']['structure']))
+                $this->str = $c['generator']['structure'];
+            elseif (file_exists($this->dir.$c['generator']['structure']))
+                $this->str = $this->dir.$c['generator']['structure'];
+            else
+                C::error('Structure doesn\'t exists');
+            C::finish();
+        }
 
-    private function checkDB()
-    {
-        $stop = !isset($this->config['database']['name'],
-                $this->config['database']['username'],
-                $this->config['database']['password']);
+        C::start('Construct hole database...', 0, 1);
+        ob_start();
+        $this->db = new Database($c['database']);
+        C::shiftAll(ob_get_clean(), 1);
+        C::finish();
 
-        H::shift();
-        echo 'Checking database...';
-        $msg = 'OK';
-        if (!$stop)
-            try {
-                $dsn = 'mysql:dbname='.$this->config['database']['name'].';host=localhost';
-                $this->pdo = new PDO($dsn, $this->config['database']['username'],
-                    $this->config['database']['password']);
-            } catch (PDOException $e) {
-                $stop = true;
-                $msg = $e->getMessage();
-                $msg = 'Connection failed: '.ltrim(substr($msg, strrpos($msg, ']')+1));
-            }
-        H::println($msg);
-
-        return !($this->stop = ($this->stop || $stop));
-    }
-
-    private function token($token, $value = null)
-    {
-        $token = '{#'.$token.'#}';
-        if (isset($value) || !isset($this->token[$token]))
-            $this->token[$token] = $value;
-
-        return $this->token[$token];
-    }
-
-    public function __construct()
-    {
-        $this->tempDir = H::fixslashes(sys_get_temp_dir()).'crudgen/';
+        $this->tempDir = C::fixslashes(sys_get_temp_dir()).'crudgen/';
     }
 }
