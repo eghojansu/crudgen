@@ -9,10 +9,11 @@ This script was created for build web application structure that use [eghojansu/
 - Download this repo as zip [eghojansu/crudgen](https://github.com/eghojansu/crudgen/archive/master.zip)
 - Extract to any folder you want
 - If you want use [eghojansu/moe](https://github.com/eghojansu/moe), you just need to edit moegen/config.ini
-  (edit in database section)
+  (edit in database section, of course other configuration can be overriden)
 - Then, CD to that folder via terminal, make sure moegen can be executed
 - hit
-	`./crudgen /path/to/project [/path/to/configuration_file.ini]`
+	`./crudgen [/path/to/configuration_file.ini] [/path/to/project]`
+  if you not pass /path/to/project you must define main.target in configuration_file
 - done
 
 This tool was designed to be flexible to build crud application with any template.
