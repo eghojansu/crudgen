@@ -58,5 +58,9 @@ C::finish();
 
 !$msg || C::header($msg, 1, 2, true);
 
+//! unsetting vars
+$dir = $cfg = $alt = $CONFIG = $target = $msg = null;
+unset($dir, $cfg, $alt, $CONFIG, $target, $msg);
+
 C::footprint();
 exit(0);
