@@ -11,7 +11,7 @@ define('TIME_BEGIN', microtime(true));
 $dir = strtr(__DIR__, '\\', '/').'/';
 
 //! config
-$cfg     = isset($_SERVER['argv'][2])?$_SERVER['argv'][2]:
+$cfg     = isset($_SERVER['argv'][1])?realpath($_SERVER['argv'][1]):
     $dir . '/moegen/config.ini';
 
 (is_file($cfg) && $CONFIG = parse_ini_file($cfg, true)) ||
@@ -49,7 +49,10 @@ C::header('Script Generator tools'.C::eol().
 
 C::start('Performing action...', 0, 1);
     ob_start();
-    $msg = (new Crudgen(isset($_SERVER['argv'][1])?$_SERVER['argv'][1]:null))->run();
+    $target = isset($_SERVER['argv'][2])?$_SERVER['argv'][2]:
+        (isset($CONFIG['main'], $CONFIG['main']['target'])?
+            $CONFIG['main']['target']:null);
+    $msg = (new Crudgen($target))->run();
     C::shiftAll(ob_get_clean(), 1);
 C::finish();
 
