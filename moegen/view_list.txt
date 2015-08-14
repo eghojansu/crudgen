@@ -1,4 +1,4 @@
-<h1 class="page-header">Data {#model#}</h1>
+<h2 class="page-header">Data {#label#}</h2>
 <div class="table-responsive">
   <table data-format="dataTable" data-source="{{ '{#route_name_prefix#}{#table_name#}_data' | url }}" class="table table-bordered table-condensed">
     <thead>
