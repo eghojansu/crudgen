@@ -111,7 +111,17 @@ FUNC;
         }
 
         $form  = '';
-        if ($isRadio)
+        if ($column->isReferenced) {
+            $rel  = C::camelcase($column->referencedTable);
+            $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
+                'S4<option value=""> ---</option>EOL'.
+                'S4<repeat group="{{ @'.$rel.' }}" key="{{ @code }}" value="{{ @label }}">EOL'.
+                'S5<option value="{{ @code }}"{{ @code==@POST.FIELD?\' selected\':\'\' }}>'.
+                '{{ @label }}</option>EOL'.
+                'S4</repeat>EOL'.
+                'S3</select>EOL';
+        }
+        elseif ($isRadio)
             foreach ($opt as $key => $value)
                 $form .= str_replace(array(
                     'VALUE',
@@ -124,6 +134,22 @@ FUNC;
                     'S4<input type="radio" name="FIELD" value="VALUE"'.
                     '{{ @POST.FIELD==VALUE?\' checked\':\'\' }}REQUIRED> LABELEOL'.
                     'S3</label>EOL');
+        elseif (count($opt)) {
+            $form = 'S4<option value=""> ---</option>EOL';
+            foreach ($opt as $key => $value)
+                $form .= str_replace(array(
+                    'VALUE',
+                    'LABEL',
+                    ), array(
+                    $value,
+                    ucwords(str_replace('_', ' ', $value)),
+                    ),
+                    'S4<option value="VALUE"{{ @POST.FIELD==VALUE?'.
+                    '\' selected\':\'\' }}> LABEL</option>EOL');
+            $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
+                $form.
+                'S3</select>EOL';
+        }
         elseif ($column->isDate)
             $form = 'S3{~ @x = explode(\'-\', @POST.FIELD) ~}EOL'.
                 'S3<select style="width: 70px; display: inline" name="FIELD[d]" class="form-control"REQUIRED>EOL'.
@@ -143,35 +169,9 @@ FUNC;
                 'S4<option value=""> ---</option>EOL'.
                 'S4{{ moe\\Instance::optionRange(date(\'Y\')-5, date(\'Y\')+5, @POST.FIELD) }}EOL'.
                 'S3</select>EOL';
-        elseif (count($opt)) {
-            $form = 'S4<option value=""> ---</option>EOL';
-            foreach ($opt as $key => $value)
-                $form .= str_replace(array(
-                    'VALUE',
-                    'LABEL',
-                    ), array(
-                    $value,
-                    ucwords(str_replace('_', ' ', $value)),
-                    ),
-                    'S4<option value="VALUE"{{ @POST.FIELD==VALUE?'.
-                    '\' selected\':\'\' }}> LABEL</option>EOL');
-            $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
-                $form.
-                'S3</select>EOL';
-        }
         elseif ($column->isLongtext)
             $form = 'S3<textarea name="FIELD" id="FIELD" class="form-control"REQUIRED>'.
                 '{{ @POST.FIELD }}</textarea>EOL';
-        elseif ($column->isReferenced) {
-            $rel  = C::camelcase($column->referencedTable);
-            $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
-                'S4<option value=""> ---</option>EOL'.
-                'S4<repeat group="{{ @'.$rel.' }}" key="{{ @code }}" value="{{ @label }}">EOL'.
-                'S5<option value="{{ @code }}"{{ @code==@POST.FIELD?\' selected\':\'\' }}>'.
-                '{{ @label }}</option>EOL'.
-                'S4</repeat>EOL'.
-                'S3</select>EOL';
-        }
         else
             $form = 'S3<input type="'.($column->isNumber?'number':'text').'"'.
                 ' name="FIELD" id="FIELD" class="form-control"'.
