@@ -33,7 +33,7 @@ class Column
                 $result = $this->Default?:($this->isNumber?0:null);
         }
 
-        return ($this->def[__FUNCTION__] = $result);
+        return ($this->def[__FUNCTION__] = var_export($result, true));
     }
 
     public function referencedTable()

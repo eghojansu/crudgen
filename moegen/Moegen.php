@@ -259,8 +259,7 @@ FUNC;
                 array('field', 'label', 'EOL', 'T4', 'T3'),
                 array($column->Field, $column->label, $eol, $t[4], $t[3]),
                 "'field'=>array(EOLT4'label',EOLT4".
-                    $this->filter($column).",".(is_null($column->defaultContent)?
-                        '':'EOLT4'.$column->defaultContent)."EOLT4),EOLT3");
+                    $this->filter($column).",".'EOLT4'.$column->defaultContent."EOLT4),EOLT3");
 
             if ($column->isReferenced) {
                 $namespace_list .= 'use {#model_namespace#}\\'.C::camelhead($column->referencedTable).';'.$eol;
