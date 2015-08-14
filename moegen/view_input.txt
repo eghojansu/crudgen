@@ -10,7 +10,7 @@
   <div class="form-group">
     <div class="col-md-9 col-md-offset-3">
       <button class="btn btn-primary" type="submit">Simpan</button>
-      <a href="{{ '{#route_prefix#}{#table_name#}' | url }}" class="btn btn-default">Batal</a>
+      <a href="{{ '{#route_name_prefix#}{#table_name#}' | url }}" class="btn btn-default">Batal</a>
     </div>
   </div>
 </form>

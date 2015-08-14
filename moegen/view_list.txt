@@ -1,10 +1,10 @@
 <h1 class="page-header">Data {#model#}</h1>
 <div class="table-responsive">
-  <table data-format="dataTable" data-source="{{ @REALM }}/data" class="table table-bordered table-condensed">
+  <table data-format="dataTable" data-source="{{ '{#route_name_prefix#}{#table_name#}_data' | url }}" class="table table-bordered table-condensed">
     <thead>
       <tr>
         <th style="width: 30px">
-          <a href="{{ @REALM.'/input' }}" title="Data Baru" class="btn btn-xs btn-info"><i class="fa fa-plus"></i></a>
+          <a href="{{ '{#route_name_prefix#}{#table_name#}_input' | url }}" title="Data Baru" class="btn btn-xs btn-info"><i class="fa fa-plus"></i></a>
         </th>
         {#column_header#}
       </tr>

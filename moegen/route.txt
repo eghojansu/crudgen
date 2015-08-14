@@ -1,4 +1,4 @@
 GET @{#route_name_prefix#}{#table_name#}: /{#route_prefix#}{#table_name#} = {#controller_namespace#}\{#controller#}->index
-GET /{#route_prefix#}{#table_name#}/data [ajax] = {#controller_namespace#}\{#controller#}->data
-GET|POST /{#route_prefix#}{#table_name#}/input = {#controller_namespace#}\{#controller#}->input
-GET /{#route_prefix#}{#table_name#}/delete [ajax] = {#controller_namespace#}\{#controller#}->delete
+GET @{#route_name_prefix#}{#table_name#}_data: /{#route_prefix#}{#table_name#}/data [ajax] = {#controller_namespace#}\{#controller#}->data
+GET|POST @{#route_name_prefix#}{#table_name#}_input: /{#route_prefix#}{#table_name#}/input = {#controller_namespace#}\{#controller#}->input
+GET @{#route_name_prefix#}{#table_name#}_delete: /{#route_prefix#}{#table_name#}/delete [ajax] = {#controller_namespace#}\{#controller#}->delete
