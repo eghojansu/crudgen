@@ -1,7 +1,7 @@
-<h1 class="page-header">
-  Data {#model#}
+<h2 class="page-header">
+  Data {#label#}
   <small>input data</small>
-</h1>
+</h2>
 <form method="post" class="form-horizontal">
   <check if="{{ isset(@message) }}">
     <div class="alert alert-danger">{{ @message | decode }}</div>
