@@ -173,7 +173,8 @@ FUNC;
                 'S3</select>EOL';
         }
         else
-            $form = 'S3<input type="text" name="FIELD" id="FIELD" class="form-control"'.
+            $form = 'S3<input type="'.($column->isNumber?'number':'text').'"'.
+                ' name="FIELD" id="FIELD" class="form-control"'.
                 ' value="{{ @POST.FIELD }}"REQUIRED>EOL';
 
         return str_replace(array(
