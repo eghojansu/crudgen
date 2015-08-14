@@ -100,13 +100,12 @@ FUNC;
     {
         $isRadio    = false;
         $opt        = array();
-        if (preg_match('/\((?<num>\d+)\)/', $column->Type, $match)) {
-            if ($match['num']==1) {
-                $isRadio = true;
-                $opt = array(1=>'Yes',0=>'No');
-            }
+        if ($column->isNumber && preg_match('/\(1\)/', $column->Type, $match)) {
+            $isRadio = true;
+            $opt = array(1=>'Yes',0=>'No');
         }
-        elseif (preg_match('/\((?<opt>.*)\)/', $column->Type, $match)) {
+        elseif ($column->isEnum) {
+            preg_match('/\((?<opt>.*)\)/', $column->Type, $match);
             $opt = explode(',', str_replace(array('"', "'"), '', $match['opt']));
             $isRadio = count($opt)<4;
         }

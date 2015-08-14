@@ -42,6 +42,12 @@ class Column
             $this->rel['table']:null);
     }
 
+    public function isEnum()
+    {
+        return ($this->def[__FUNCTION__] = preg_match('/^(enum|set)/i',
+        $this->Type));
+    }
+
     public function isNumber()
     {
         return ($this->def[__FUNCTION__] = preg_match('/^(bit|tinyint|smallint|'.
