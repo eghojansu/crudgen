@@ -194,6 +194,8 @@ class Crudgen
         exec($this->cmp.' '.$this->cmpCmd, $result);
         chdir($wd);
 
+        !is_dir($this->tar.'vendor') || file_put_contents($this->tar.'vendor/.htaccess', 'Deny from all');
+
         C::finish();
     }
 
