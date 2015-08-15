@@ -10,7 +10,7 @@ This script was created for build web application structure that use [eghojansu/
 - Extract to any folder you want
 - If you want use [eghojansu/moe](https://github.com/eghojansu/moe), you just need to edit moegen/config.ini
   (edit in database section, of course other configuration can be overriden)
-- Then, CD to that folder via terminal, make sure moegen can be executed
+- Then, CD to that folder via terminal, make sure crudgen can be executed
 - hit
 	`./crudgen [/path/to/configuration_file.ini] [/path/to/project]`
   if you not pass /path/to/project you must define main.target in configuration_file

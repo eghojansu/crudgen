@@ -4,7 +4,7 @@
 namespace crudgen;
 
 //! crudgen version
-define('CRUDGEN_VERSION', '2.2.0');
+define('CRUDGEN_VERSION', '2.2.1');
 define('TIME_BEGIN', microtime(true));
 
 //! current dir

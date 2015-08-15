@@ -36,7 +36,7 @@ class C
     static function config($var = null, $val = null)
     {
         if (is_array($var)) {
-            self::$config = array_merge_recursive(self::$config,
+            self::$config = array_merge(self::$config,
                 self::tokenizeConfig($var));
 
             return;
