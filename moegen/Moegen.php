@@ -83,12 +83,12 @@ FUNC;
     {
         $self = __FUNCTION__;
         return <<<FUNC
-    public function $self(\$url)
+    public function $self(\$input, \$delete)
     {
         return array('data'=>\$this{$this->use_relation}
             ->select(<<<SEL
-concat('<a href="{\$url}/input?id=', {table}.{#primary_key#}, '" class="text-green" title="Edit"><i class="fa fa-edit"></i></a>',
-'<a href="{\$url}/delete?id=', {table}.{#primary_key#}, '" class="text-red" title="Delete" data-bootbox="confirm"><i class="fa fa-remove"></i></a>') as actions,
+concat('<a href="{\$input}', {table}.{#primary_key#}, '" class="text-green" title="Edit"><i class="fa fa-edit"></i></a>',
+'<a href="{\$delete}', {table}.{#primary_key#}, '" class="text-red" title="Delete" data-bootbox="confirm"><i class="fa fa-remove"></i></a>') as actions,
 {$this->column_select}
 SEL
 )->fetchMode('num')->all());
