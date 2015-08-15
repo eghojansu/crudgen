@@ -18,7 +18,8 @@ class {#controller#} extends AbstractAdmin
     public function data($moe)
     {
         $moe->send($this->model->data(
-            $moe->siteUrl('{#route_name_prefix#}{#table_name#}_data')));
+            $moe->siteUrl('{#route_name_prefix#}{#table_name#}_input').'?id=',
+            $moe->siteUrl('{#route_name_prefix#}{#table_name#}_delete').'?id='));
     }
 
     public function input($moe)
