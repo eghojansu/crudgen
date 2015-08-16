@@ -17,23 +17,28 @@ class Column
     {
         $type = $this->Type;
         if (preg_match('/^(?<col>[a-z_]+)/i', $type, $match))
-            $type = $match['col'];
+            $type = strtolower($match['col']);
 
         switch ($type) {
             case 'date':
                 $result = 'date(\'Y-m-d\')';
+                break;
             case 'year':
                 $result = 'date(\'Y\')';
+                break;
             case 'time':
                 $result = 'date(\'H:i:s\')';
+                break;
             case 'timestamp':
             case 'datetime':
                 $result = 'date(\'Y-m-d H:i:s\')';
+                break;
             default:
-                $result = $this->Default?:($this->isNumber?0:null);
+                $result = var_export($this->Default?:($this->isNumber?0:null), true);
+                break;
         }
 
-        return ($this->def[__FUNCTION__] = var_export($result, true));
+        return ($this->def[__FUNCTION__] = $result);
     }
 
     public function referencedTable()
