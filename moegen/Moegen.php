@@ -132,7 +132,7 @@ FUNC;
                     ),
                     'S3<label class="radio-inline">EOL'.
                     'S4<input type="radio" name="FIELD" value="VALUE"'.
-                    '{{ @POST.FIELD==VALUE?\' checked\':\'\' }}REQUIRED> LABELEOL'.
+                    '{{ @POST.FIELD==\'VALUE\'?\' checked\':\'\' }}REQUIRED> LABELEOL'.
                     'S3</label>EOL');
         elseif (count($opt)) {
             $form = 'S4<option value=""> ---</option>EOL';
@@ -144,7 +144,7 @@ FUNC;
                     $value,
                     ucwords(str_replace('_', ' ', $value)),
                     ),
-                    'S4<option value="VALUE"{{ @POST.FIELD==VALUE?'.
+                    'S4<option value="VALUE"{{ @POST.FIELD==\'VALUE\'?'.
                     '\' selected\':\'\' }}> LABEL</option>EOL');
             $form = 'S3<select name="FIELD" id="FIELD" class="form-control"REQUIRED>EOL'.
                 $form.
