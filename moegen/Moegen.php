@@ -214,6 +214,8 @@ FUNC;
         if (preg_match('/\((?<len>.*)\)/', $column->Type, $match))
             $length = is_numeric($match['len'])? $match['len']:
                 explode(',', str_replace(array('"', "'"), '', $match['len']));
+        if (is_array($length) && $column->isNumber)
+            $length = array_sum($length);
         if (is_array($length))
             $filter .= ",'in_array'=>array('".implode("','", $length)."')";
         elseif ($length)
