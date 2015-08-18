@@ -221,19 +221,20 @@ class Crudgen
         }
 
         C::start('Checking config...');
-        isset($c['generator']['template'],
-              $c['database']['name'],
-              $c['database']['host'],
-              $c['database']['username'],
-              $c['database']['password'],
-              $c['fixed'],
-              $c['files']) || C::error('invalid config');
+        isset($c['generator']['template']) || C::error('no generator.template');
+        isset($c['database']['name']) || C::error('no database.name');
+        isset($c['database']['host']) || C::error('no database.host');
+        isset($c['database']['username']) || C::error('no database.username');
+        isset($c['database']['password']) || C::error('no database.password');
+        isset($c['fixed']) || C::error('no fixed');
+        isset($c['files']) || C::error('no files');
         C::finish();
 
-        C::start('Setting template directory to: '.
-            C::config('generator')['template'].'...');
-        file_exists(C::config('generator')['template']) || C::error('fail');
-        $this->dir = C::fixslashes(C::config('generator')['template']);
+        $gen_temp = C::config('generator')['template'];
+        !is_array($gen_temp) || $gen_temp = end($gen_temp);
+        C::start('Setting template directory to: '.$gen_temp.'...');
+        file_exists($gen_temp) || C::error('fail');
+        $this->dir = C::fixslashes($gen_temp);
         C::finish();
 
         C::start('Checking lookup path...');
